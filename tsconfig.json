@@ -4,12 +4,8 @@
     "experimentalDecorators": true,
     "useDefineForClassFields": false,
     "module": "ESNext",
-    "types": ["vite/client"],
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
+    "types": ["node"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
     "isolatedModules": true,
@@ -17,11 +13,21 @@
     "allowJs": true,
     "jsx": "react-jsx",
     "paths": {
-      "@/*": [
-        "./*"
-      ]
+      "@/*": ["./apps/frontend/src/*"],
+      "@tickethub/types": ["./packages/types/src/index.ts"],
+      "@tickethub/shared": ["./packages/shared/src/index.ts"]
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "include": [
+    "apps/frontend/src",
+    "apps/frontend/vite.config.ts",
+    "apps/backend/src",
+    "apps/backend/test",
+    "apps/backend/prisma/seed.ts",
+    "apps/backend/prisma.config.ts",
+    "packages/shared/src",
+    "packages/types/src"
+  ]
 }

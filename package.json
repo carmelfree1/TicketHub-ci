@@ -1,36 +1,30 @@
 {
-  "name": "react-example",
+  "name": "tickethub-ci",
   "private": true,
-  "version": "0.0.0",
-  "type": "module",
+  "version": "0.1.0",
+  "packageManager": "pnpm@12.9.1",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@google/genai": "^2.4.0",
-    "@tailwindcss/vite": "^4.3.3",
-    "@vitejs/plugin-react": "^6.1.1",
-    "lucide-react": "^0.546.0",
-    "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "vite": "^8.3.0",
-    "express": "^4.21.2",
-    "dotenv": "^17.2.3",
-    "motion": "^12.23.24"
+    "dev": "concurrently -k -n API,WEB -c blue,green \"corepack pnpm --filter @tickethub/backend dev\" \"corepack pnpm --filter @tickethub/frontend dev\"",
+    "dev:api": "corepack pnpm --filter @tickethub/backend dev",
+    "dev:web": "corepack pnpm --filter @tickethub/frontend dev",
+    "build": "corepack pnpm --filter @tickethub/frontend build && corepack pnpm --filter @tickethub/backend build",
+    "build:web": "corepack pnpm --filter @tickethub/frontend build",
+    "build:api": "corepack pnpm --filter @tickethub/backend build",
+    "preview": "corepack pnpm --filter @tickethub/frontend preview",
+    "start": "corepack pnpm --filter @tickethub/backend start",
+    "lint": "tsc --noEmit",
+    "test": "corepack pnpm --filter @tickethub/backend test",
+    "test:integration": "corepack pnpm --filter @tickethub/backend test:integration",
+    "test:e2e": "corepack pnpm --filter @tickethub/backend test:e2e",
+    "db:generate": "corepack pnpm --filter @tickethub/backend db:generate",
+    "db:validate": "corepack pnpm --filter @tickethub/backend db:validate",
+    "db:migrate": "corepack pnpm --filter @tickethub/backend db:migrate",
+    "db:baseline:legacy": "corepack pnpm --filter @tickethub/backend db:baseline:legacy",
+    "db:seed": "corepack pnpm --filter @tickethub/backend db:seed"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
-    "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0",
-    "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
-    "tailwindcss": "^4.3.3",
-    "tsx": "^4.21.0",
-    "typescript": "^7.0.2",
-    "@types/express": "^4.17.21"
+    "concurrently": "^9.2.1",
+    "typescript": "^7.0.2"
   }
 }

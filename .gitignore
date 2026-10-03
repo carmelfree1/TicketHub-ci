@@ -1,7 +1,12 @@
 node_modules/
+/apps/backend/src/generated/
 build/
 dist/
 coverage/
+.data/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
 .DS_Store
 *.log
 .env*

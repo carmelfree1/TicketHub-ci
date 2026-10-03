@@ -1,0 +1,24 @@
+{
+  "name": "TicketHub CI",
+  "short_name": "TicketHub",
+  "description": "Vos billets de transport et d’événement au même endroit en Côte d’Ivoire.",
+  "lang": "fr-CI",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0b1c30",
+  "theme_color": "#0b1c30",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
