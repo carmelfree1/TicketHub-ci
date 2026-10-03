@@ -1,0 +1,6 @@
+{
+  "name": "TicketHub CI",
+  "description": "L'agrégateur officiel de billetterie en Côte d'Ivoire - Transport Interurbain, Concerts, Événements sportifs avec paiement Mobile Money instantané (Wave, Orange Money, MTN MoMo).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
