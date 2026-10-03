@@ -1,99 +1,111 @@
 # TicketHub CI
 
-Application de réservation de trajets interurbains et de billets événementiels en Côte d’Ivoire. Le client React/Vite communique avec une API Express et PostgreSQL. Les réservations, paiements, billets et validations QR sont conservés et vérifiés côté serveur.
+Application de réservation de trajets interurbains et de billets événementiels en Côte d’Ivoire. Le dépôt est organisé en workspace pnpm : client React/Vite, API Express modulaire, et packages partagés pour les types et utilitaires. L’API utilise PostgreSQL via Prisma 7 et son adapter `pg`; Redis/BullMQ exécute les tâches asynchrones lorsqu’il est configuré.
 
 ## Prérequis
 
 - Node.js 20.19+ (ou 22.12+)
-- PostgreSQL 14+
-- Un compte marchand GeniusPay avec ses credentials pour lancer de vrais paiements
+- pnpm 12 (Corepack peut l’activer à partir du champ `packageManager`)
+- Docker Compose et PostgreSQL 14+; Redis est facultatif en développement
+- Un compte marchand GeniusPay et des credentials sandbox pour tester un véritable checkout
 
 ## Démarrage local
 
-1. Installer les dépendances :
+```bash
+corepack pnpm install
+cp .env.example .env
+docker compose up -d postgres
+corepack pnpm db:generate
+corepack pnpm db:migrate
+corepack pnpm db:seed
+corepack pnpm dev
+```
 
-   ```bash
-   npm install
-   ```
+Vite est disponible sur `http://localhost:3000` et relaie `/api` vers l’API sur `0.0.0.0:3001`. L’API répond au health check sur `/api/health`. Pour activer BullMQ en local, démarrer aussi `redis` avec Compose et renseigner `REDIS_URL=redis://127.0.0.1:6379` dans `.env`; sans Redis, expiration et rapprochement tournent via des tâches locales.
 
-2. Créer la base PostgreSQL et copier la configuration :
+Le `.env.example` contient des secrets factices de développement uniquement. Les remplacer par des valeurs aléatoires indépendantes avant tout déploiement; ne jamais committer `.env` ou credentials.
 
-   ```bash
-   createdb tickethub
-   cp .env.example .env
-   ```
+## Workspace et organisation
 
-   Adapter `DATABASE_URL` dans `.env`. `server/index.ts` crée le schéma puis insère le catalogue de démonstration (trajets pour les 14 prochains jours et événements futurs) de façon idempotente au démarrage.
+- `apps/frontend` : client Vite; les écrans ont été rangés par fonction dans `src/features`, avec les frontières app, composants, layouts, routes, hooks, services et styles.
+- `apps/backend` : API Express, migrations Prisma et tests unit/integration/e2e. `src/app.ts` crée l’application; `src/server.ts` connecte PostgreSQL/Redis, monte l’API et gère l’arrêt propre.
+- `packages/types` : contrats de données partagés entre client et API.
+- `packages/shared` : formatage XOF et normalisation du téléphone ivoirien.
+- `docs` : notes d’architecture et d’exploitation.
+- `docker-compose.yml` : services PostgreSQL et Redis pour le développement.
 
-3. Générer les secrets indépendants :
+Les réponses HTTP utilisées par l’interface existante restent compatibles : `{ user }` pour l’authentification, `{ data }` pour le catalogue/réservations/billets, et la carte des sièges sans enveloppe. Le navigateur utilise uniquement des URL relatives (`/api`); Vite relaie les appels côté serveur.
 
-   ```bash
-   openssl rand -base64 48
-   ```
+## Base de données et migration legacy
 
-   Utiliser des valeurs différentes pour `TICKET_SIGNING_SECRET`, `GENIUSPAY_WEBHOOK_SECRET` et `PARTNER_INVITE_CODE`. En production, les deux secrets de paiement, la clé API GeniusPay et le secret de signature des billets doivent être définis; l’API refuse de démarrer si l’un manque ou fait moins de 32 caractères.
+Pour une base neuve, `db:migrate` applique les migrations de `apps/backend/prisma`. Pour une base déjà créée par l’ancien serveur SQL direct, faire une sauvegarde, puis baseliner une seule fois avant de déployer l’extension Prisma :
 
-4. Lancer l’API et Vite :
+```bash
+DATABASE_URL='postgresql://…/tickethub' corepack pnpm db:baseline:legacy
+DATABASE_URL='postgresql://…/tickethub' corepack pnpm db:migrate
+```
 
-   ```bash
-   npm run dev
-   ```
+Le baseline suppose les tables legacy (`users`, `sessions`, `bus_trips`, `events`, `event_ticket_categories`, `bookings`, `payments`, `tickets`, `webhook_deliveries`). La migration suivante ajoute providers, commandes, remboursements, règlements, notifications et événements de sécurité, élargit les états de paiement et backfill les commandes depuis les réservations existantes. Ne lancez pas ce baseline sur une base vide.
 
-   Le client est disponible sur `http://localhost:3000`, l’API sur `http://localhost:3001`. Vite relaie `/api` vers l’API. Une base PostgreSQL est nécessaire pour utiliser les comptes, réservations, billets et scans persistants.
+`pnpm db:generate` produit le client Prisma sous `apps/backend/src/generated`; l’accès aux moteurs Prisma est nécessaire à la première génération. `pnpm db:seed` ajoute de façon idempotente les trajets des 14 prochains jours et les événements de démonstration.
 
 ## Configuration
 
 | Variable | Usage |
 | --- | --- |
-| `DATABASE_URL` | URI PostgreSQL de l’application. |
-| `API_PORT` | Port HTTP de l’API (3001 par défaut). |
-| `APP_URL` | Origine publique du client; GeniusPay y redirige le navigateur après le checkout. En production, renseigner l’URL HTTPS réellement déployée. |
-| `WEB_ORIGIN` | Origine du client autorisée pour les requêtes mutantes en production. |
-| `TICKET_SIGNING_SECRET` | Secret privé HMAC pour signer les QR à usage unique (32 caractères minimum). |
-| `GENIUSPAY_API_KEY`, `GENIUSPAY_API_SECRET` | Credentials serveur-à-serveur GeniusPay; ne jamais les préfixer par `VITE_` ni les exposer au navigateur. |
+| `DATABASE_URL` | URI PostgreSQL (obligatoire). |
+| `API_PORT` | Port HTTP (3001 par défaut). |
+| `APP_URL` | Origine du client utilisée dans les URL de retour GeniusPay. |
+| `WEB_ORIGIN` | Origine navigateur autorisée et configuration des sessions. |
+| `JWT_SECRET` | HMAC des sessions JWT (32 caractères minimum). |
+| `TICKET_SIGNING_SECRET` | HMAC des QR de billets (32 caractères minimum). |
+| `SESSION_TTL_DAYS` | Durée de session (14 jours par défaut). |
+| `REDIS_URL` | Redis/BullMQ; facultatif en local, obligatoire en production. |
+| `GENIUSPAY_API_KEY`, `GENIUSPAY_API_SECRET` | Credentials serveur-à-serveur GeniusPay; jamais exposés au navigateur. |
 | `GENIUSPAY_WEBHOOK_SECRET` | Secret configuré pour signer les webhooks du marchand. |
-| `GENIUSPAY_API_BASE_URL` | Base API GeniusPay; défaut `https://pay.genius.ci/api/v1/merchant`. |
-| `PARTNER_INVITE_CODE` | Code d’invitation; sans code valide, les nouvelles inscriptions restent voyageur. |
-| `PGSSL` | Mettre `true` si PostgreSQL exige TLS avec certificat vérifié. |
-| `PG_POOL_SIZE` | Taille maximale du pool PostgreSQL (10 par défaut). |
+| `GENIUSPAY_API_BASE_URL` | Base de l’API GeniusPay. |
+| `PARTNER_INVITE_CODE` | Code d’invitation optionnel pour l’inscription partenaire. |
+| `PGSSL`, `PG_POOL_SIZE` | TLS et taille du pool PostgreSQL. |
+| `PLATFORM_COMMISSION_BPS` | Commission des règlements en points de base (0 par défaut). |
+| `EMAIL_PROVIDER_URL`, `EMAIL_PROVIDER_API_KEY` | Adapter HTTP optionnel pour les emails sortants. |
+| `SMS_PROVIDER_URL`, `SMS_PROVIDER_API_KEY` | Adapter HTTP optionnel pour les SMS sortants. |
 
-Les réservations transport et événement ont un hold de 10 minutes. Leur tarif, capacité et disponibilité sont recalculés et verrouillés dans une transaction PostgreSQL au moment de la réservation. Les sièges/capacités sont libérés à l’expiration. Un paiement reçu tardivement est placé en `needs_review`, sans émission automatique de billet.
+En production, l’API exige HTTPS pour `APP_URL`/`WEB_ORIGIN`, Redis et les credentials GeniusPay. Les secrets doivent venir du gestionnaire de secrets de l’environnement de déploiement.
 
-## GeniusPay et webhooks
+## Architecture backend
 
-Le serveur initie le checkout avec `POST /api/v1/merchant/payments`; les méthodes Wave, Orange Money, MTN MoMo et carte sont transmises au fournisseur. Moov laisse le checkout présenter les moyens effectivement activés sur le compte marchand.
+- `apps/backend/src/config` : validation stricte de l’environnement, Prisma/PostgreSQL, Redis et configuration HTTP.
+- `apps/backend/src/core` et `middleware` : erreurs, logging, pagination, sécurité, authentification, permissions et validation Zod.
+- `apps/backend/src/modules` : auth, users, providers, catalogue, trips, events, réservations, commandes, paiements, billets, remboursements, settlements, notifications et sécurité.
+- `apps/backend/src/integrations` : adapter GeniusPay et providers email/SMS HTTP.
+- `apps/backend/src/queues` et `jobs` : BullMQ, expiration des réservations/commandes, rapprochement des paiements, notifications, revue des remboursements et génération des règlements.
+- `apps/backend/prisma` : schéma, migrations SQL et seed.
 
-Configurer dans le tableau de bord marchand l’URL publique :
+Les holds durent 10 minutes. Disponibilité, prix et capacité sont vérifiés dans une transaction PostgreSQL verrouillée. Un paiement confirmé après expiration passe en `needs_review` au lieu d’émettre automatiquement un billet. Les remboursements sont soumis à une revue manuelle : aucun appel de retour d’argent GeniusPay non documenté n’est effectué. Le rapprochement marque pour contrôle les paiements anciens sans endpoint fournisseur supposé.
 
-```text
-https://<origine-api>/api/webhooks/geniuspay
-```
+## GeniusPay, QR et partenaire
 
-Le point d’entrée vérifie `X-Webhook-Signature` et `X-Webhook-Timestamp` sur le corps JSON brut (HMAC-SHA256 de `timestamp + "." + payload`), avec une fenêtre de fraîcheur de cinq minutes. Les livraisons sont idempotentes. Un billet n’est émis qu’après webhook de succès signé, correspondant à la référence, au montant et à la devise XOF de la réservation. Une simple redirection du navigateur ne confirme jamais le paiement.
+Configurer l’URL publique `https://<origine-api>/api/webhooks/geniuspay`. Le routeur webhook lit le corps JSON brut avant `express.json`, vérifie `X-Webhook-Signature` et `X-Webhook-Timestamp` (HMAC-SHA256 de `timestamp + "." + payload`, fenêtre de cinq minutes) et déduplique l’identifiant signé de l’événement. Un billet est émis uniquement après un webhook de succès correspondant à la réservation, à la référence, au montant et à la devise XOF; la redirection du navigateur ne confirme jamais le paiement.
 
-Les transactions réelles ne peuvent pas être testées sans les credentials marchand et un webhook public accessible. Garder les clés sandbox séparées des clés de production.
-
-## Billets et contrôles
-
-- Les QR contiennent un jeton HMAC signé, lié au ticket et à la réservation, avec une expiration.
-- `POST /api/partner/scans` exige une session partenaire. Le contrôle consomme le billet avec une mise à jour atomique; un deuxième scan, un billet expiré ou non payé est refusé.
-- Le scanner utilise la caméra avec `BarcodeDetector` si le navigateur le prend en charge. L’accès caméra nécessite HTTPS (ou localhost); la saisie manuelle du code reste disponible en secours.
-- Le wallet charge les billets persistés de la session. Il ne fabrique pas de pass localement.
-
-## Routes API principales
-
-- Authentification : `/api/auth/register`, `/api/auth/login`, `/api/auth/me`, `/api/auth/logout`.
-- Catalogue : `/api/catalog/trips`, `/api/catalog/trips/:tripId/seats`, `/api/catalog/events`.
-- Réservation et paiement : `/api/bookings/transport`, `/api/bookings/event`, `/api/bookings/:bookingId`, `/api/bookings/:bookingId/payment`.
-- Billets et partenaire : `/api/tickets`, `/api/partner/scans`, `/api/partner/manifest/:tripId`.
-- Webhook : `/api/webhooks/geniuspay`.
+Les QR sont liés à un billet et à une réservation, signés HMAC et expirables. Le scanner partenaire consomme le billet atomiquement; un deuxième scan est refusé. Le manifeste partenaire expose les billets payés d’un trajet. Wave, Orange Money, MTN, Moov et carte sont mappés par l’adapter; les méthodes effectivement disponibles dépendent du compte marchand. Les paiements réels ne peuvent être testés sans credentials et webhook public; l’e2e utilise un faux provider HTTP.
 
 ## Vérification
 
 ```bash
-npm test
-npm run lint
-npm run build
+corepack pnpm test
+corepack pnpm lint
+corepack pnpm build
 ```
 
-Les tests actuels couvrent les validateurs métier, les formats de téléphone et de billet, les signatures QR et la fraîcheur/signature des webhooks. Les scénarios bout en bout qui appellent PostgreSQL ou GeniusPay nécessitent une base et des credentials configurés.
+Les tests unitaires couvrent les schémas, permissions, mappings, validateurs métier et signatures historiques. Les suites PostgreSQL s’exécutent sur une base jetable migrée et seedée :
+
+```bash
+export TEST_DATABASE_URL='postgresql://…/tickethub_test'
+export DATABASE_URL="$TEST_DATABASE_URL"
+corepack pnpm db:migrate
+corepack pnpm db:seed
+corepack pnpm test:integration
+corepack pnpm test:e2e
+```
+
+Les tests d’intégration/e2e sont ignorés si `TEST_DATABASE_URL` est absent. Aucun paiement réel n’est effectué par la suite e2e.

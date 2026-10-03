@@ -1,0 +1,23 @@
+import { Router } from 'express';
+import { authRoutes } from '../modules/auth/auth.routes.js';
+import { userRoutes } from '../modules/users/user.routes.js';
+import { providerRoutes } from '../modules/providers/provider.routes.js';
+import { catalogRoutes } from '../modules/catalog/catalog.routes.js';
+import { reservationRoutes } from '../modules/reservations/reservation.routes.js';
+import { orderRoutes } from '../modules/orders/order.routes.js';
+import { paymentRoutes } from '../modules/payments/payment.routes.js';
+import { ticketRoutes } from '../modules/tickets/ticket.routes.js';
+import { refundRoutes } from '../modules/refunds/refund.routes.js';
+import { settlementRoutes } from '../modules/settlements/settlement.routes.js';
+
+export const apiRoutes = Router();
+apiRoutes.use(authRoutes);
+apiRoutes.use(userRoutes);
+apiRoutes.use(providerRoutes);
+apiRoutes.use(catalogRoutes);
+apiRoutes.use(reservationRoutes);
+apiRoutes.use(orderRoutes);
+apiRoutes.use(paymentRoutes);
+apiRoutes.use(ticketRoutes);
+apiRoutes.use(refundRoutes);
+apiRoutes.use(settlementRoutes);

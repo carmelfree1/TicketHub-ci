@@ -1,4 +1,5 @@
 node_modules/
+/apps/backend/src/generated/
 build/
 dist/
 coverage/
