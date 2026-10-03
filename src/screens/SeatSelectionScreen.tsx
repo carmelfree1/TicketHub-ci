@@ -1,37 +1,45 @@
 import React, { useState, useEffect } from 'react';
 import { TripDeparture } from '../types';
 import { ASSETS } from '../data/mockData';
+import { api } from '../services/api';
 
 interface SeatSelectionScreenProps {
   trip: TripDeparture;
   onContinueToPayment: (selectedSeats: number[], totalAmount: number) => void;
   onBack: () => void;
+  isBooking?: boolean;
+  actionError?: string;
 }
 
 export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
   trip,
   onContinueToPayment,
+  isBooking = false,
+  actionError = '',
 }) => {
   const [selectedSeats, setSelectedSeats] = useState<number[]>([14]);
-  const [remainingSeconds, setRemainingSeconds] = useState(9 * 60 + 39);
-
-  // Occupied seats
-  const occupiedSeats = [1, 2, 5, 11, 12, 19, 20, 27, 28, 29, 36];
-  // Seats currently held by other users
-  const pendingSeats = [7, 21];
+  const [occupiedSeats, setOccupiedSeats] = useState<number[]>([1, 2, 5, 11, 12, 19, 20, 27, 28, 29, 36]);
+  const [availabilitySource, setAvailabilitySource] = useState<'loading' | 'server' | 'demo'>('loading');
+  const pendingSeats: number[] = [];
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setRemainingSeconds((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTime = (totalSecs: number) => {
-    const mins = Math.floor(totalSecs / 60);
-    const secs = totalSecs % 60;
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-  };
+    let active = true;
+    api.seats(trip.id)
+      .then((result) => {
+        if (!active) return;
+        const occupied = result.seats.filter((seat) => seat.status === 'occupied').map((seat) => seat.number);
+        setOccupiedSeats(occupied);
+        setAvailabilitySource('server');
+        setSelectedSeats((current) => {
+          const stillAvailable = current.filter((seat) => !occupied.includes(seat));
+          if (stillAvailable.length) return stillAvailable;
+          const firstAvailable = result.seats.find((seat) => seat.status === 'available')?.number;
+          return firstAvailable ? [firstAvailable] : [];
+        });
+      })
+      .catch(() => { if (active) setAvailabilitySource('demo'); });
+    return () => { active = false; };
+  }, [trip.id]);
 
   const toggleSeat = (seatNum: number) => {
     if (occupiedSeats.includes(seatNum) || pendingSeats.includes(seatNum)) return;
@@ -119,32 +127,16 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
 
   return (
     <div className="flex flex-col w-full pb-36 max-w-md mx-auto">
-      {/* 1. Dynamic Micro-Feedback Banner for Hold Time */}
+      {/* 1. Server-side seat reservation notice */}
       <div className="px-4 pt-2 pb-2">
-        <div className="w-full bg-[#ffdbcc] text-[#351000] rounded-2xl p-3.5 shadow-sm relative overflow-hidden flex flex-col gap-1.5 border border-[#ffb693]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[#ff6b00] text-[20px] animate-pulse fill">
-                timer
-              </span>
-              <span className="font-headline text-[16px] tracking-tight font-bold text-[#a04100]">
-                {formatTime(remainingSeconds)}
-              </span>
-              <span className="font-headline text-[10px] uppercase tracking-wider bg-[#ff6b00] text-white px-2 py-0.5 rounded-full font-bold ml-1">
-                Verrouillé
-              </span>
-            </div>
-            <div className="w-20 bg-white/70 h-2 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-1000 ${
-                  remainingSeconds < 120 ? 'bg-[#ba1a1a]' : 'bg-[#ff6b00]'
-                }`}
-                style={{ width: `${(remainingSeconds / (10 * 60)) * 100}%` }}
-              ></div>
-            </div>
-          </div>
-          <p className="font-body text-[12px] text-[#7a3000] leading-snug">
-            Vos places sélectionnées sont réservées temporairement avec verrou atomique anti-doublon.
+        <div className="w-full bg-[#eff4ff] text-[#0b1c30] rounded-2xl p-3.5 shadow-sm border border-[#dce9ff] flex items-start gap-2.5">
+          <span className="material-symbols-outlined text-[#216b43] text-[20px]">verified_user</span>
+          <p className="font-body text-[12px] leading-snug">
+            {availabilitySource === 'server'
+              ? 'Disponibilités chargées depuis le serveur. Le verrouillage temporaire commence lorsque vous confirmez la sélection.'
+              : availabilitySource === 'demo'
+                ? 'Mode démonstration : places indicatives uniquement. Une connexion API est requise pour créer le verrouillage serveur.'
+                : 'Vérification des disponibilités auprès du serveur…'}
           </p>
         </div>
       </div>
@@ -371,13 +363,15 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
             </div>
           </div>
 
+          {actionError && <p role="alert" className="p-2 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[11px]">{actionError}</p>}
           <button
             type="button"
+            disabled={isBooking || selectedSeats.length === 0}
             onClick={() => onContinueToPayment(selectedSeats, totalPrice)}
-            className="w-full min-h-[50px] bg-gradient-to-r from-[#ff6b00] to-[#ff842b] hover:opacity-95 active:scale-[0.98] transition-all text-white font-headline text-[15px] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer"
+            className="w-full min-h-[50px] bg-gradient-to-r from-[#ff6b00] to-[#ff842b] hover:opacity-95 active:scale-[0.98] transition-all text-white font-headline text-[15px] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            <span className="material-symbols-outlined text-[20px]">lock</span>
-            <span>Continuer vers le Paiement</span>
+            <span className="material-symbols-outlined text-[20px]">{isBooking ? 'progress_activity' : 'lock'}</span>
+            <span>{isBooking ? 'Verrouillage des sièges…' : 'Continuer vers le paiement'}</span>
             <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
           </button>
         </div>

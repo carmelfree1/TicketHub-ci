@@ -6,8 +6,8 @@ interface HeaderProps {
   currentScreen: AppScreen;
   userRole: UserRole;
   onNavigate: (screen: AppScreen) => void;
-  onToggleRole: () => void;
   onOpenProfile: () => void;
+  backScreen?: AppScreen;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,16 +15,19 @@ export const Header: React.FC<HeaderProps> = ({
   userRole,
   onNavigate,
   onOpenProfile,
+  backScreen,
 }) => {
   const isSubScreen =
     currentScreen === 'seat-selection' ||
+    currentScreen === 'event-selection' ||
     currentScreen === 'payment' ||
+    currentScreen === 'payment-result' ||
     currentScreen === 'digital-pass' ||
     currentScreen === 'partner-scanner';
 
   const handleBack = () => {
-    if (currentScreen === 'seat-selection') onNavigate('explorer');
-    else if (currentScreen === 'payment') onNavigate('seat-selection');
+    if (currentScreen === 'seat-selection' || currentScreen === 'event-selection' || currentScreen === 'payment-result') onNavigate('explorer');
+    else if (currentScreen === 'payment') onNavigate(backScreen || 'seat-selection');
     else if (currentScreen === 'digital-pass') onNavigate('explorer');
     else if (currentScreen === 'partner-scanner') onNavigate('partner-fleet');
     else onNavigate('explorer');
@@ -36,6 +39,10 @@ export const Header: React.FC<HeaderProps> = ({
         return null;
       case 'seat-selection':
         return 'Sélection Des Sièges';
+      case 'event-selection':
+        return 'Billets événementiels';
+      case 'payment-result':
+        return 'Vérification paiement';
       case 'payment':
         return 'Paiement Mobile Money';
       case 'digital-pass':

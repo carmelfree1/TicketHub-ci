@@ -1,12 +1,16 @@
-import React, { useState } from 'react';
-import { AppScreen, UserRole, TripDeparture, DigitalTicket } from './types';
+import React, { useEffect, useState } from 'react';
+import { AppScreen, AuthUser, DigitalTicket, TicketCategory, TicketedEvent, TripDeparture } from './types';
 import { MOCK_TRIPS, INITIAL_DIGITAL_TICKET } from './data/mockData';
+import { api, ApiError } from './services/api';
+import { toDigitalTicket } from './services/ticketMapper';
 import { Header } from './components/Header';
 import { BottomNav } from './components/BottomNav';
 import { ProfileModal } from './components/ProfileModal';
 import { ExplorerScreen } from './screens/ExplorerScreen';
 import { SeatSelectionScreen } from './screens/SeatSelectionScreen';
+import { EventTicketSelectionScreen } from './screens/EventTicketSelectionScreen';
 import { PaymentScreen } from './screens/PaymentScreen';
+import { PaymentResultScreen, PaymentReturnState } from './screens/PaymentResultScreen';
 import { DigitalPassScreen } from './screens/DigitalPassScreen';
 import { TicketsWalletScreen } from './screens/TicketsWalletScreen';
 import { PartnerDashboardScreen } from './screens/partner/PartnerDashboardScreen';
@@ -14,98 +18,269 @@ import { PartnerFleetScreen } from './screens/partner/PartnerFleetScreen';
 import { PartnerScannerScreen } from './screens/partner/PartnerScannerScreen';
 import { PartnerManifestScreen } from './screens/partner/PartnerManifestScreen';
 
+const partnerScreens: AppScreen[] = [
+  'partner-dashboard',
+  'partner-fleet',
+  'partner-scanner',
+  'partner-manifest',
+];
+
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('explorer');
-  const [userRole, setUserRole] = useState<UserRole>('traveler');
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<TripDeparture>(MOCK_TRIPS[0]);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([14]);
+  const [selectedEvent, setSelectedEvent] = useState<TicketedEvent | null>(null);
+  const [selectedEventCategory, setSelectedEventCategory] = useState<TicketCategory | null>(null);
+  const [eventQuantity, setEventQuantity] = useState(1);
   const [totalPrice, setTotalPrice] = useState<number>(5000);
+  const [bookingId, setBookingId] = useState('');
+  const [holdExpiresAt, setHoldExpiresAt] = useState('');
+  const [flowError, setFlowError] = useState('');
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
+  const [activeTicketCount, setActiveTicketCount] = useState(0);
+  const [ticketRefreshKey, setTicketRefreshKey] = useState(0);
   const [digitalTicket, setDigitalTicket] = useState<DigitalTicket>(INITIAL_DIGITAL_TICKET);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [paymentReturnState, setPaymentReturnState] = useState<PaymentReturnState>('checking');
+  const [paymentReturnMessage, setPaymentReturnMessage] = useState('Nous vérifions la confirmation reçue de la passerelle de paiement.');
+  const [returnBookingId, setReturnBookingId] = useState('');
+  const [retryPaymentStatus, setRetryPaymentStatus] = useState(0);
 
-  // Navigation handlers
+  const userRole = authUser?.role ?? 'traveler';
+
+  useEffect(() => {
+    let active = true;
+    api.me()
+      .then((user) => { if (active) setAuthUser(user); })
+      .catch(() => { if (active) setAuthUser(null); });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!authUser) {
+      setActiveTicketCount(0);
+      return;
+    }
+    let active = true;
+    api.tickets()
+      .then((tickets) => {
+        if (active) setActiveTicketCount(tickets.filter((ticket) => ticket.status === 'active').length);
+      })
+      .catch(() => { if (active) setActiveTicketCount(0); });
+    return () => { active = false; };
+  }, [authUser, ticketRefreshKey]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const returnedBooking = params.get('booking');
+    const payment = params.get('payment');
+    if (!returnedBooking || !payment) return;
+    setReturnBookingId(returnedBooking);
+    setCurrentScreen('payment-result');
+    setPaymentReturnState('checking');
+    setPaymentReturnMessage('Nous vérifions la confirmation reçue de la passerelle. La redirection seule ne valide pas le paiement.');
+  }, []);
+
+  useEffect(() => {
+    if (!returnBookingId) return;
+    let stopped = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    let attempts = 0;
+
+    const checkStatus = async () => {
+      if (stopped) return;
+      attempts += 1;
+      try {
+        const booking = await api.booking(returnBookingId);
+        if (stopped) return;
+        if (booking.status === 'paid') {
+          const tickets = await api.tickets();
+          setActiveTicketCount(tickets.filter((item) => item.status === 'active').length);
+          const ticket = tickets.find((item) => item.commandRef === returnBookingId);
+          if (!ticket) {
+            setPaymentReturnState('error');
+            setPaymentReturnMessage('Le paiement est confirmé, mais le billet n’apparaît pas encore. Réessayez la vérification ou contactez le support.');
+            return;
+          }
+          setDigitalTicket(toDigitalTicket(ticket));
+          setCurrentScreen('digital-pass');
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+        if (booking.status === 'needs_review') {
+          setPaymentReturnState('review');
+          setPaymentReturnMessage('Le paiement est reçu, mais le délai de réservation a expiré. Notre équipe doit vérifier la commande avant d’émettre un billet.');
+          return;
+        }
+        if (booking.status === 'failed' || booking.status === 'expired' || booking.status === 'cancelled') {
+          setPaymentReturnState('failed');
+          setPaymentReturnMessage('La réservation n’a pas été confirmée dans le délai prévu et aucun billet n’a été émis. Si votre compte a été débité, contactez le support pour vérification.');
+          window.history.replaceState({}, document.title, window.location.pathname);
+          return;
+        }
+        if (attempts >= 60) {
+          setPaymentReturnState('pending');
+          setPaymentReturnMessage('La passerelle n’a pas encore confirmé le paiement. Vérifiez de nouveau dans quelques instants.');
+          return;
+        }
+        setPaymentReturnState('checking');
+        setPaymentReturnMessage('Confirmation en attente. Nous interrogeons la réservation ; le billet sera émis après le webhook vérifié.');
+        timeout = setTimeout(checkStatus, 3000);
+      } catch (error) {
+        if (stopped) return;
+        setPaymentReturnState('error');
+        setPaymentReturnMessage(error instanceof ApiError && error.status === 401
+          ? 'Votre session a expiré. Connectez-vous avec le même compte pour vérifier cette réservation.'
+          : 'Impossible de joindre l’API. Vérifiez votre connexion puis réessayez.');
+      }
+    };
+
+    void checkStatus();
+    return () => {
+      stopped = true;
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [returnBookingId, retryPaymentStatus]);
+
   const handleSelectTrip = (trip: TripDeparture) => {
     setSelectedTrip(trip);
-    setTotalPrice(trip.price * selectedSeats.length);
+    setSelectedEvent(null);
+    setSelectedEventCategory(null);
+    setSelectedSeats([14]);
+    setTotalPrice(trip.price);
+    setBookingId('');
+    setFlowError('');
     setCurrentScreen('seat-selection');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleContinueToPayment = (seats: number[], amount: number) => {
-    setSelectedSeats(seats);
-    setTotalPrice(amount);
-    setCurrentScreen('payment');
+  const handleContinueToPayment = async (seats: number[], amount: number) => {
+    setFlowError('');
+    if (!authUser) {
+      setFlowError('Connectez-vous ou créez un compte avant de réserver.');
+      setIsProfileModalOpen(true);
+      return;
+    }
+    setIsCreatingBooking(true);
+    try {
+      const booking = await api.createTransportBooking(selectedTrip.id, seats);
+      setSelectedSeats(seats);
+      setTotalPrice(Number(booking.amount_xof) || amount);
+      setBookingId(booking.id);
+      setHoldExpiresAt(booking.hold_expires_at);
+      setSelectedEvent(null);
+      setSelectedEventCategory(null);
+      setCurrentScreen('payment');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      setFlowError(error instanceof Error ? error.message : 'Impossible de réserver ces sièges.');
+    } finally {
+      setIsCreatingBooking(false);
+    }
+  };
+
+  const handleSelectEvent = (event: TicketedEvent) => {
+    setSelectedEvent(event);
+    setSelectedEventCategory(event.categories[0] ?? null);
+    setEventQuantity(1);
+    setBookingId('');
+    setFlowError('');
+    setCurrentScreen('event-selection');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handlePaymentSuccess = () => {
-    // Generate new digital ticket for this booking
-    const newTicket: DigitalTicket = {
-      ...INITIAL_DIGITAL_TICKET,
-      carrier: selectedTrip.carrier,
-      departCity: selectedTrip.departCity.toUpperCase(),
-      departStation: selectedTrip.departStation,
-      arrivalCity: selectedTrip.arrivalCity.toUpperCase(),
-      arrivalStation: selectedTrip.arrivalStation,
-      departureTime: selectedTrip.departTime,
-      duration: selectedTrip.duration,
-      seats: selectedSeats,
-      price: totalPrice,
-      commandRef: `CMD-2024-${Math.floor(10000 + Math.random() * 90000)}`,
-      ticketCode: `TKH-${Math.floor(1000 + Math.random() * 9000)}-${Math.floor(1000 + Math.random() * 9000)}`,
-      issuedAt: `Émis le ${new Date().toLocaleDateString('fr-FR', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-      })} à ${new Date().toLocaleTimeString('fr-FR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })}`,
-    };
+  const handleContinueEvent = async (category: TicketCategory, quantity: number) => {
+    if (!selectedEvent) return;
+    setFlowError('');
+    if (!authUser) {
+      setFlowError('Connectez-vous ou créez un compte avant de réserver.');
+      setIsProfileModalOpen(true);
+      return;
+    }
+    setIsCreatingBooking(true);
+    try {
+      const booking = await api.createEventBooking(selectedEvent.id, category.id, quantity);
+      setSelectedEventCategory(category);
+      setEventQuantity(quantity);
+      setTotalPrice(Number(booking.amount_xof) || category.price * quantity);
+      setBookingId(booking.id);
+      setHoldExpiresAt(booking.hold_expires_at);
+      setCurrentScreen('payment');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (error) {
+      setFlowError(error instanceof Error ? error.message : 'Impossible de réserver ces billets.');
+    } finally {
+      setIsCreatingBooking(false);
+    }
+  };
 
-    setDigitalTicket(newTicket);
-    setCurrentScreen('digital-pass');
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  const handleStartPayment = async (method: string) => {
+    if (!bookingId) throw new Error('Aucune réservation active. Recommencez la sélection.');
+    const payment = await api.startPayment(bookingId, method);
+    if (!payment.checkoutUrl || !/^https:\/\//i.test(payment.checkoutUrl)) {
+      throw new Error('URL de checkout GeniusPay invalide.');
+    }
+    window.location.assign(payment.checkoutUrl);
   };
 
   const handleNavigate = (screen: AppScreen) => {
-    // If switching between screens, ensure appropriate role is set
-    if (
-      screen === 'partner-dashboard' ||
-      screen === 'partner-fleet' ||
-      screen === 'partner-scanner' ||
-      screen === 'partner-manifest'
-    ) {
-      setUserRole('partner');
-    } else {
-      setUserRole('traveler');
+    if (currentScreen === 'payment-result' && screen !== 'payment-result') {
+      window.history.replaceState({}, document.title, window.location.pathname);
+      setReturnBookingId('');
     }
+    if (partnerScreens.includes(screen) && authUser?.role !== 'partner') {
+      setIsProfileModalOpen(true);
+      return;
+    }
+    if (screen === 'tickets-wallet') setTicketRefreshKey((value) => value + 1);
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const handleAuthenticate = async (
+    mode: 'login' | 'register',
+    credentials: { fullName?: string; phone: string; password: string; partnerInviteCode?: string },
+  ) => {
+    const user = mode === 'login'
+      ? await api.login({ phone: credentials.phone, password: credentials.password })
+      : await api.register({
+          fullName: credentials.fullName || '',
+          phone: credentials.phone,
+          password: credentials.password,
+          partnerInviteCode: credentials.partnerInviteCode,
+        });
+    setAuthUser(user);
+    setFlowError('');
+    if (user.role === 'partner') setCurrentScreen('partner-dashboard');
+  };
+
+  const handleLogout = async () => {
+    await api.logout();
+    setAuthUser(null);
+    setCurrentScreen('explorer');
+  };
+
+  const handlePaymentRetry = () => {
+    setPaymentReturnState('checking');
+    setPaymentReturnMessage('Nouvelle vérification de la réservation…');
+    setRetryPaymentStatus((value) => value + 1);
+  };
+
   return (
     <div className="min-h-screen bg-[#f8f9ff] text-[#0b1c30] flex flex-col items-center">
-      {/* Container wrapper ensuring standard mobile-first view while looking sleek on desktop */}
       <div className="w-full max-w-md min-h-screen flex flex-col bg-[#f8f9ff] relative shadow-2xl">
-        {/* Top Fixed Navigation Header */}
         <Header
           currentScreen={currentScreen}
           userRole={userRole}
           onNavigate={handleNavigate}
-          onToggleRole={() =>
-            setUserRole((prev) => (prev === 'traveler' ? 'partner' : 'traveler'))
-          }
           onOpenProfile={() => setIsProfileModalOpen(true)}
+          backScreen={selectedEvent ? 'event-selection' : 'seat-selection'}
         />
 
-        {/* Main Screen Content Viewport */}
         <main className="flex-1 w-full pt-16">
           {currentScreen === 'explorer' && (
-            <ExplorerScreen
-              onSelectTrip={handleSelectTrip}
-              onNavigate={handleNavigate}
-            />
+            <ExplorerScreen onSelectTrip={handleSelectTrip} onSelectEvent={handleSelectEvent} />
           )}
 
           {currentScreen === 'seat-selection' && (
@@ -113,6 +288,18 @@ export default function App() {
               trip={selectedTrip}
               onContinueToPayment={handleContinueToPayment}
               onBack={() => handleNavigate('explorer')}
+              isBooking={isCreatingBooking}
+              actionError={flowError}
+            />
+          )}
+
+          {currentScreen === 'event-selection' && selectedEvent && (
+            <EventTicketSelectionScreen
+              event={selectedEvent}
+              onContinue={handleContinueEvent}
+              onBack={() => handleNavigate('explorer')}
+              isBooking={isCreatingBooking}
+              actionError={flowError}
             />
           )}
 
@@ -121,8 +308,22 @@ export default function App() {
               trip={selectedTrip}
               selectedSeats={selectedSeats}
               totalAmount={totalPrice}
-              onPaymentSuccess={handlePaymentSuccess}
-              onBack={() => handleNavigate('seat-selection')}
+              bookingId={bookingId}
+              holdExpiresAt={holdExpiresAt}
+              event={selectedEvent ?? undefined}
+              eventCategory={selectedEventCategory ?? undefined}
+              eventQuantity={eventQuantity}
+              onStartPayment={handleStartPayment}
+              onBack={() => handleNavigate(selectedEvent ? 'event-selection' : 'seat-selection')}
+            />
+          )}
+
+          {currentScreen === 'payment-result' && (
+            <PaymentResultScreen
+              state={paymentReturnState}
+              message={paymentReturnMessage}
+              onRetry={handlePaymentRetry}
+              onExplore={() => handleNavigate('explorer')}
             />
           )}
 
@@ -135,50 +336,37 @@ export default function App() {
 
           {currentScreen === 'tickets-wallet' && (
             <TicketsWalletScreen
-              currentTicket={digitalTicket}
+              user={authUser}
               onViewPass={(ticket) => {
                 setDigitalTicket(ticket);
                 setCurrentScreen('digital-pass');
               }}
               onExplore={() => handleNavigate('explorer')}
+              onLogin={() => setIsProfileModalOpen(true)}
             />
           )}
 
-          {/* Partner Pro Screens */}
-          {currentScreen === 'partner-dashboard' && (
-            <PartnerDashboardScreen onNavigate={handleNavigate} />
-          )}
-
-          {currentScreen === 'partner-fleet' && (
-            <PartnerFleetScreen onNavigate={handleNavigate} />
-          )}
-
+          {currentScreen === 'partner-dashboard' && <PartnerDashboardScreen onNavigate={handleNavigate} />}
+          {currentScreen === 'partner-fleet' && <PartnerFleetScreen onNavigate={handleNavigate} />}
           {currentScreen === 'partner-scanner' && (
-            <PartnerScannerScreen
-              onNavigate={handleNavigate}
-              onBack={() => handleNavigate('partner-fleet')}
-            />
+            <PartnerScannerScreen onNavigate={handleNavigate} onBack={() => handleNavigate('partner-fleet')} />
           )}
-
-          {currentScreen === 'partner-manifest' && (
-            <PartnerManifestScreen />
-          )}
+          {currentScreen === 'partner-manifest' && <PartnerManifestScreen />}
         </main>
 
-        {/* Bottom Tab Navigation Bar */}
         <BottomNav
           currentScreen={currentScreen}
           userRole={userRole}
           onNavigate={handleNavigate}
-          activeTicketCount={2}
+          activeTicketCount={activeTicketCount}
         />
 
-        {/* Profile & Mode Switcher Modal */}
         <ProfileModal
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
-          userRole={userRole}
-          onSelectRole={(role) => setUserRole(role)}
+          user={authUser}
+          onAuthenticate={handleAuthenticate}
+          onLogout={handleLogout}
           onNavigateScreen={handleNavigate}
         />
       </div>

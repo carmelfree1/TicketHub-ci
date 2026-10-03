@@ -1,21 +1,68 @@
-import React, { useState } from 'react';
-import { TripDeparture, AppScreen } from '../types';
+import React, { useEffect, useState } from 'react';
+import { TripDeparture, TicketedEvent } from '../types';
 import { MOCK_TRIPS, ASSETS } from '../data/mockData';
+import { MOCK_EVENTS } from '../data/eventData';
+import { api } from '../services/api';
 
 interface ExplorerScreenProps {
   onSelectTrip: (trip: TripDeparture) => void;
-  onNavigate: (screen: AppScreen) => void;
+  onSelectEvent: (event: TicketedEvent) => void;
 }
 
 export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
   onSelectTrip,
+  onSelectEvent,
 }) => {
   const [selectedCategory, setSelectedCategory] = useState<'transport' | 'concerts' | 'football' | 'spectacles'>('transport');
-  const [departCity, setDepartCity] = useState('Abidjan (Adjamé / Treichville)');
+  const [departCity, setDepartCity] = useState('Abidjan');
   const [destCity, setDestCity] = useState('Yamoussoukro');
   const [passengers] = useState('1 Adulte');
-  const [dateDeparture] = useState("Aujourd'hui, 24 Oct.");
+  const [trips, setTrips] = useState<TripDeparture[]>(MOCK_TRIPS);
+  const [events, setEvents] = useState<TicketedEvent[]>(MOCK_EVENTS);
+  const [visibleTrips, setVisibleTrips] = useState<TripDeparture[]>(MOCK_TRIPS.slice(0, 3));
+  const [catalogMessage, setCatalogMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [departureDate, setDepartureDate] = useState(() => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    return `${tomorrow.getFullYear()}-${String(tomorrow.getMonth() + 1).padStart(2, '0')}-${String(tomorrow.getDate()).padStart(2, '0')}`;
+  });
   const [isSwapping, setIsSwapping] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    Promise.all([api.trips(), api.events()])
+      .then(([nextTrips, nextEvents]) => {
+        if (!active) return;
+        setTrips(nextTrips);
+        setVisibleTrips(nextTrips.slice(0, 3));
+        setEvents(nextEvents);
+        setCatalogMessage('');
+      })
+      .catch(() => {
+        if (active) setCatalogMessage('Mode démonstration : le catalogue API est indisponible.');
+      });
+    return () => { active = false; };
+  }, []);
+
+  const handleSearch = async () => {
+    setIsLoading(true);
+    setCatalogMessage('');
+    try {
+      const result = await api.trips({ from: departCity.trim(), to: destCity.trim(), date: departureDate });
+      setVisibleTrips(result);
+      if (result.length === 0) setCatalogMessage('Aucun départ trouvé pour ces critères. Essayez une autre date ou destination.');
+    } catch {
+      const local = trips.filter((trip) =>
+        trip.departCity.toLowerCase().includes(departCity.split('(')[0].trim().toLowerCase()) &&
+        trip.arrivalCity.toLowerCase().includes(destCity.trim().toLowerCase())
+      );
+      setVisibleTrips(local.length ? local : trips.slice(0, 3));
+      setCatalogMessage('Mode démonstration : les filtres sont appliqués aux données locales.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSwapCities = () => {
     setIsSwapping(true);
@@ -28,6 +75,15 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
   const handleSelectSuggestion = (city: string) => {
     setDestCity(city);
   };
+
+  const eventTypeFilter = selectedCategory === 'concerts'
+    ? 'concert'
+    : selectedCategory === 'football'
+      ? 'sport'
+      : selectedCategory === 'spectacles'
+        ? 'show'
+        : null;
+  const filteredEvents = events.filter((event) => !eventTypeFilter || event.eventType === eventTypeFilter);
 
   return (
     <div className="flex flex-col w-full pb-24 max-w-md mx-auto">
@@ -138,6 +194,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
         </div>
       </section>
 
+      {selectedCategory === 'transport' && (
+        <>
       {/* 3. Search Engine Card */}
       <section className="px-4 pb-3">
         <div className="rounded-2xl bg-white p-4 shadow-sm border border-[#e2bfb0]/30 flex flex-col gap-3">
@@ -231,9 +289,14 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
                 <span className="block font-headline text-[10px] uppercase font-bold tracking-wider text-[#5a4136] leading-none mb-0.5">
                   Date de départ
                 </span>
-                <span className="block font-body text-[13px] font-semibold text-[#0b1c30] truncate">
-                  {dateDeparture}
-                </span>
+                <input
+                  aria-label="Date de départ"
+                  type="date"
+                  value={departureDate}
+                  min={new Date().toISOString().slice(0, 10)}
+                  onChange={(event) => setDepartureDate(event.target.value)}
+                  className="block max-w-full bg-transparent font-body text-[13px] font-semibold text-[#0b1c30] focus:outline-none"
+                />
               </div>
             </div>
 
@@ -255,11 +318,12 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
           {/* Main Action CTA Button */}
           <button
             type="button"
-            onClick={() => onSelectTrip(MOCK_TRIPS[0])}
-            className="w-full mt-1 min-h-[48px] px-4 py-3 rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[15px] font-bold shadow-md hover:shadow-lg active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer"
+            onClick={handleSearch}
+            disabled={isLoading}
+            className="w-full mt-1 min-h-[48px] px-4 py-3 rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[15px] font-bold shadow-md hover:shadow-lg active:scale-[0.99] transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60"
           >
-            <span className="material-symbols-outlined text-[20px]">search</span>
-            <span>Comparer les départs (14 disponibles)</span>
+            <span className="material-symbols-outlined text-[20px]">{isLoading ? 'sync' : 'search'}</span>
+            <span>{isLoading ? 'Recherche…' : `Comparer les départs (${visibleTrips.length} affichés)`}</span>
           </button>
         </div>
       </section>
@@ -294,8 +358,9 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
           </button>
         </div>
 
-        {/* Bus Card 1 : UTB Express (Best Price) */}
-        {MOCK_TRIPS.slice(0, 3).map((trip, idx) => {
+        {catalogMessage && <p role="status" className="p-2.5 rounded-xl bg-[#eff4ff] text-[#5a4136] font-body text-[11px]">{catalogMessage}</p>}
+        {visibleTrips.length === 0 && <p className="p-4 rounded-2xl bg-white border border-[#dce9ff] text-center font-body text-[12px] text-[#5a4136]">Aucun départ trouvé.</p>}
+        {visibleTrips.map((trip, idx) => {
           const isFirst = idx === 0;
           return (
             <div
@@ -438,128 +503,72 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
         })}
       </section>
 
-      {/* 6. Featured Weekend Highlights Section */}
+        </>
+      )}
+
+      {/* 6. Real event catalogue — event purchases follow their own ticket categories */}
       <section className="px-4 pb-5 flex flex-col gap-3">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="font-headline text-[18px] font-bold text-[#0b1c30]">
-              À la une ce week-end
+              {selectedCategory === 'transport' ? 'À la une ce week-end' : 'Billets événementiels'}
             </h2>
             <p className="font-body text-[12px] text-[#5a4136]">
-              Les plus grands rendez-vous en Côte d'Ivoire
+              Concerts, sport et spectacles — billets et catégories dédiés
             </p>
           </div>
-          <button
-            type="button"
-            className="font-body text-[13px] text-[#ff6b00] font-bold cursor-pointer"
-          >
-            Tout voir
-          </button>
+          <span className="font-headline text-[11px] text-[#ff6b00] font-bold">{filteredEvents.length} événements</span>
         </div>
 
-        {/* Highlight 1: Didi B Concert */}
-        <div className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-[#e2bfb0]/30 flex flex-col">
-          <div className="relative h-44 w-full overflow-hidden">
-            <img
-              src={ASSETS.didiBConcert}
-              alt="Concert Live Didi B • Sacré Tour au Palais de la Culture"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/90 via-[#0b1c30]/30 to-transparent"></div>
-
-            {/* Category Chip */}
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#ff6b00] text-white font-headline text-[11px] font-bold flex items-center gap-1 shadow-sm">
-              <span className="material-symbols-outlined text-[13px]">mic</span>
-              Concert Live
-            </div>
-
-            {/* Date Tag & Title */}
-            <div className="absolute bottom-3 left-3 right-3 text-white">
-              <span className="font-headline text-[11px] font-bold uppercase tracking-wider text-[#a8f3c1] block">
-                Samedi 26 Octobre • 20h00
-              </span>
-              <h3 className="font-headline text-[17px] font-bold text-white leading-tight drop-shadow-sm">
-                Concert Live Didi B • Sacré Tour
-              </h3>
-              <span className="font-body text-[12px] text-white/90 flex items-center gap-1 mt-0.5">
-                <span className="material-symbols-outlined text-[14px]">pin_drop</span>
-                Palais de la Culture, Treichville
-              </span>
-            </div>
+        {filteredEvents.length === 0 && (
+          <div className="p-4 rounded-2xl bg-white border border-[#dce9ff] text-center font-body text-[12px] text-[#5a4136]">
+            Aucun événement dans cette catégorie pour le moment.
           </div>
+        )}
 
-          <div className="p-3 flex items-center justify-between bg-white">
-            <div>
-              <span className="block font-body text-[11px] text-[#5a4136]">
-                À partir de
-              </span>
-              <span className="font-headline text-[17px] font-bold text-[#ff6b00]">
-                10 000 FCFA
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onSelectTrip(MOCK_TRIPS[0])}
-              className="min-h-[42px] px-4 rounded-xl bg-[#ff6b00] text-white font-headline text-[13px] font-bold shadow-sm hover:opacity-90 active:scale-95 transition-transform flex items-center gap-1 cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-[18px]">confirmation_number</span>
-              <span>Prendre un pass</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Highlight 2: Ligue 1 LONACI Clasico */}
-        <div className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-[#e2bfb0]/30 flex flex-col">
-          <div className="relative h-44 w-full overflow-hidden">
-            <img
-              src={ASSETS.asecAfricaMatch}
-              alt="Match Ligue 1 LONACI ASEC Mimosas vs Africa Sports"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/90 via-[#0b1c30]/30 to-transparent"></div>
-
-            {/* Category Chip */}
-            <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#216b43] text-white font-headline text-[11px] font-bold flex items-center gap-1 shadow-sm">
-              <span className="material-symbols-outlined text-[13px]">sports_soccer</span>
-              Ligue 1 LONACI
-            </div>
-
-            {/* Date Tag & Title */}
-            <div className="absolute bottom-3 left-3 right-3 text-white">
-              <span className="font-headline text-[11px] font-bold uppercase tracking-wider text-[#a8f3c1] block">
-                Dimanche 27 Octobre • 16h30
-              </span>
-              <h3 className="font-headline text-[17px] font-bold text-white leading-tight drop-shadow-sm">
-                ASEC Mimosas vs Africa Sports
-              </h3>
-              <span className="font-body text-[12px] text-white/90 flex items-center gap-1 mt-0.5">
-                <span className="material-symbols-outlined text-[14px]">stadium</span>
-                Stade Félix Houphouët-Boigny, Le Plateau
-              </span>
-            </div>
-          </div>
-
-          <div className="p-3 flex items-center justify-between bg-white">
-            <div>
-              <span className="block font-body text-[11px] text-[#5a4136]">
-                Tribune &amp; Virage dès
-              </span>
-              <span className="font-headline text-[17px] font-bold text-[#216b43]">
-                2 000 FCFA
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={() => onSelectTrip(MOCK_TRIPS[0])}
-              className="min-h-[42px] px-4 rounded-xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[13px] font-bold hover:bg-[#dce9ff] active:scale-95 transition-transform flex items-center gap-1 cursor-pointer border border-[#dce9ff]"
-            >
-              <span className="material-symbols-outlined text-[18px]">stadium</span>
-              <span>Choisir ma place</span>
-            </button>
-          </div>
-        </div>
+        {filteredEvents.map((event) => {
+          const lowestPrice = Math.min(...event.categories.map((category) => category.price));
+          const startsAt = new Date(event.startsAt);
+          const label = event.eventType === 'sport' ? 'Football' : event.eventType === 'show' ? 'Spectacle' : 'Concert';
+          return (
+            <article key={event.id} className="group relative overflow-hidden rounded-2xl bg-white shadow-sm border border-[#e2bfb0]/30 flex flex-col">
+              <div className="relative h-44 w-full overflow-hidden">
+                <img
+                  src={event.imageUrl}
+                  alt={event.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                  referrerPolicy="no-referrer"
+                  loading="lazy"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/90 via-[#0b1c30]/30 to-transparent"></div>
+                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#ff6b00] text-white font-headline text-[11px] font-bold shadow-sm">{label}</div>
+                <div className="absolute bottom-3 left-3 right-3 text-white">
+                  <span className="font-headline text-[11px] font-bold uppercase tracking-wider text-[#a8f3c1] block">
+                    {new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full', timeStyle: 'short' }).format(startsAt)}
+                  </span>
+                  <h3 className="font-headline text-[17px] font-bold text-white leading-tight drop-shadow-sm">{event.title}</h3>
+                  <span className="font-body text-[12px] text-white/90 flex items-center gap-1 mt-0.5">
+                    <span className="material-symbols-outlined text-[14px]">pin_drop</span>{event.venue}
+                  </span>
+                </div>
+              </div>
+              <div className="p-3 flex items-center justify-between gap-2 bg-white">
+                <div>
+                  <span className="block font-body text-[11px] text-[#5a4136]">Billets à partir de</span>
+                  <span className="font-headline text-[17px] font-bold text-[#ff6b00]">{Number.isFinite(lowestPrice) ? `${lowestPrice.toLocaleString('fr-FR')} FCFA` : 'Voir les tarifs'}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onSelectEvent(event)}
+                  className="min-h-[42px] px-4 rounded-xl bg-[#ff6b00] text-white font-headline text-[13px] font-bold shadow-sm hover:opacity-90 active:scale-95 transition-transform flex items-center gap-1 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">confirmation_number</span>
+                  <span>Choisir un billet</span>
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </section>
 
       {/* 7. Instant GeniusPay Secured Footing */}

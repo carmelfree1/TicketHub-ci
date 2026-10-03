@@ -15,7 +15,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   activeTicketCount = 2,
 }) => {
   // If in payment or digital pass full-focus flow, do not show bottom navigation bar to keep checkout clean
-  if (currentScreen === 'payment' || currentScreen === 'digital-pass') {
+  if (currentScreen === 'payment' || currentScreen === 'payment-result' || currentScreen === 'digital-pass' || currentScreen === 'event-selection') {
     return null;
   }
 

@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { TripDeparture, PaymentMethodId } from '../types';
+import { TripDeparture, PaymentMethodId, TicketCategory, TicketedEvent } from '../types';
 
 interface PaymentScreenProps {
   trip: TripDeparture;
   selectedSeats: number[];
   totalAmount: number;
-  onPaymentSuccess: () => void;
+  bookingId: string;
+  holdExpiresAt: string;
+  event?: TicketedEvent;
+  eventCategory?: TicketCategory;
+  eventQuantity?: number;
+  onStartPayment: (method: PaymentMethodId) => Promise<void>;
   onBack: () => void;
 }
 
@@ -13,20 +18,39 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   trip,
   selectedSeats,
   totalAmount,
-  onPaymentSuccess,
+  bookingId,
+  holdExpiresAt,
+  event,
+  eventCategory,
+  eventQuantity = 1,
+  onStartPayment,
 }) => {
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethodId>('wave');
-  const [phoneNumber, setPhoneNumber] = useState('07 88 45 12 30');
-  const [remainingSeconds, setRemainingSeconds] = useState(8 * 60 + 11);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [processingStep, setProcessingStep] = useState(1);
+  const [paymentError, setPaymentError] = useState('');
+  const purchaseTitle = event?.title || trip.carrier;
+  const originLabel = event?.city || trip.departCity;
+  const originDetails = event?.venue || trip.departStation;
+  const destinationLabel = event?.city || trip.arrivalCity;
+  const destinationDetails = event?.venue || trip.arrivalStation;
+  const purchaseTime = event
+    ? new Date(event.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
+    : trip.departTime;
+  const purchaseDate = event
+    ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(event.startsAt))
+    : trip.departAt
+      ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(trip.departAt))
+      : 'Date du départ';
+  const purchaseQuantity = event ? eventQuantity : selectedSeats.length;
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setRemainingSeconds((prev) => (prev > 0 ? prev - 1 : 0));
-    }, 1000);
+    const expiresAt = new Date(holdExpiresAt).getTime();
+    const update = () => setRemainingSeconds(Math.max(0, Math.ceil((expiresAt - Date.now()) / 1000)));
+    update();
+    const timer = setInterval(update, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [holdExpiresAt]);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -36,79 +60,55 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
   const operatorInfo: Record<
     PaymentMethodId,
-    { name: string; tag?: string; subtitle: string; icon: string; instruction: React.ReactNode; isMomo: boolean }
+    { name: string; tag?: string; subtitle: string; icon: string; instruction: React.ReactNode }
   > = {
     wave: {
       name: 'Wave Mobile Money',
       tag: 'Recommandé',
-      subtitle: 'Validation push instantanée • 0% de frais',
+      subtitle: 'Paiement Mobile Money via le checkout sécurisé',
       icon: 'contactless',
-      isMomo: true,
-      instruction: (
-        <span>
-          Vous recevrez une <strong className="font-bold text-[#0b1c30]">notification push instantanée</strong> sur votre application <strong className="font-bold text-[#ff6b00]">Wave</strong> pour autoriser le débit sécurisé de <strong className="font-bold text-[#0b1c30]">{totalAmount.toLocaleString('fr-FR')} FCFA</strong>.
-        </span>
-      ),
+      instruction: <span>Vous serez redirigé vers le checkout GeniusPay pour confirmer le paiement Wave.</span>,
     },
     orange: {
       name: 'Orange Money',
       tag: 'CI',
-      subtitle: 'Code secret via prompt USSD #144#',
+      subtitle: 'Paiement Orange Money via le checkout sécurisé',
       icon: 'phone_android',
-      isMomo: true,
-      instruction: (
-        <span>
-          Composez <strong className="font-bold text-[#ff6b00]">#144*82#</strong> pour générer votre code d'autorisation temporaire ou attendez le prompt USSD automatique sur votre mobile.
-        </span>
-      ),
+      instruction: <span>Le checkout GeniusPay vous indiquera les étapes Orange Money disponibles pour cette transaction.</span>,
     },
     mtn: {
       name: 'MTN MoMo',
-      subtitle: 'Validation rapide via prompt direct *133#',
+      subtitle: 'Paiement MTN MoMo via le checkout sécurisé',
       icon: 'signal_cellular_alt',
-      isMomo: true,
-      instruction: (
-        <span>
-          Un prompt direct <strong className="font-bold text-[#0b1c30]">MTN MoMo</strong> va s'afficher sur votre écran. Saisissez votre code PIN secret pour confirmer.
-        </span>
-      ),
+      instruction: <span>Le checkout GeniusPay vous guidera pour valider votre paiement MTN MoMo.</span>,
     },
     moov: {
       name: 'Moov Money',
       subtitle: 'Paiement sécurisé Flooz / Moov',
       icon: 'account_balance_wallet',
-      isMomo: true,
-      instruction: (
-        <span>
-          Un message de confirmation <strong className="font-bold text-[#0b1c30]">Moov Flooz</strong> vous sera envoyé pour finaliser le débit sécurisé.
-        </span>
-      ),
+      instruction: <span>Le checkout hébergé présente les moyens de paiement actuellement disponibles pour votre compte.</span>,
     },
     cb: {
       name: 'Carte Bancaire',
       subtitle: 'Visa, Mastercard • 3D-Secure 2.0',
       icon: 'credit_card',
-      isMomo: false,
-      instruction: (
-        <span>
-          Vous serez redirigé vers la passerelle sécurisée <strong className="font-bold text-[#216b43]">GeniusPay 3D-Secure 2.0</strong> pour saisir les numéros de votre carte bancaire.
-        </span>
-      ),
+      instruction: <span>Le checkout GeniusPay indiquera les cartes et étapes de validation disponibles.</span>,
     },
   };
 
-  const handleStartPayment = () => {
+  const handleStartPayment = async () => {
+    if (remainingSeconds <= 0) {
+      setPaymentError('La réservation a expiré. Retournez choisir vos places ou billets.');
+      return;
+    }
+    setPaymentError('');
     setIsProcessing(true);
-    setProcessingStep(1);
-
-    // Simulate real webhook communication and confirmation
-    setTimeout(() => {
-      setProcessingStep(2);
-    }, 1600);
-
-    setTimeout(() => {
-      onPaymentSuccess();
-    }, 3200);
+    try {
+      await onStartPayment(selectedMethod);
+    } catch (error) {
+      setPaymentError(error instanceof Error ? error.message : 'Impossible de démarrer le paiement.');
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -153,24 +153,24 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <div className="flex items-center justify-between gap-1">
               <div className="flex items-center gap-1.5">
                 <span className="bg-[#eff4ff] text-[#0b1c30] px-2.5 py-0.5 rounded-full font-headline text-[11px] font-bold tracking-wider uppercase border border-[#dce9ff]">
-                  {trip.carrier}
+                  {purchaseTitle}
                 </span>
                 <span className="font-body text-[12px] text-[#5a4136]">
-                  • Ligne Interurbaine
+                  • {event ? (event.eventType === 'sport' ? 'Événement sportif' : 'Billet événementiel') : 'Transport interurbain'}
                 </span>
               </div>
               <span className="font-headline text-[10px] text-[#a04100] font-bold bg-[#ffdbcc] px-2 py-0.5 rounded border border-[#ffb693]">
-                CMD-2024-84920
+                CMD-{bookingId.slice(0, 8).toUpperCase()}
               </span>
             </div>
 
             <div className="flex items-center justify-between mt-1">
               <div className="flex flex-col">
                 <span className="font-headline text-[18px] text-[#0b1c30] font-bold leading-tight">
-                  {trip.departCity}
+                  {originLabel}
                 </span>
                 <span className="font-body text-[12px] text-[#5a4136]">
-                  {trip.departStation}
+                  {originDetails}
                 </span>
               </div>
 
@@ -179,16 +179,16 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   trending_flat
                 </span>
                 <span className="font-headline text-[10px] text-[#216b43] font-bold">
-                  Direct A3
+                  {eventCategory?.name || trip.serviceTitle || 'Trajet direct'}
                 </span>
               </div>
 
               <div className="flex flex-col items-end">
                 <span className="font-headline text-[18px] text-[#0b1c30] font-bold leading-tight">
-                  {trip.arrivalCity}
+                  {destinationLabel}
                 </span>
                 <span className="font-body text-[12px] text-[#5a4136]">
-                  {trip.arrivalStation}
+                  {destinationDetails}
                 </span>
               </div>
             </div>
@@ -197,12 +197,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <div className="flex items-center gap-1 bg-[#eff4ff] px-2.5 py-1 rounded-lg border border-[#dce9ff]">
                 <span className="material-symbols-outlined text-[16px] text-[#5a4136]">
-                  airline_seat_recline_extra
+                  {event ? 'confirmation_number' : 'airline_seat_recline_extra'}
                 </span>
                 <span className="font-headline text-[12px] text-[#0b1c30] font-bold">
-                  {selectedSeats.length === 1
-                    ? `Siège ${selectedSeats[0]}`
-                    : `Sièges ${selectedSeats.join(', ')}`}
+                  {event
+                    ? `${eventCategory?.name || 'Billet'} · ${purchaseQuantity} billet${purchaseQuantity > 1 ? 's' : ''}`
+                    : selectedSeats.length === 1 ? `Siège ${selectedSeats[0]}` : `Sièges ${selectedSeats.join(', ')}`}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-[#eff4ff] px-2.5 py-1 rounded-lg border border-[#dce9ff]">
@@ -210,7 +210,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   calendar_today
                 </span>
                 <span className="font-body text-[12px] text-[#0b1c30] font-medium">
-                  Aujourd'hui, {trip.departTime}
+                  {purchaseDate} · {purchaseTime}
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-[#eff4ff] px-2.5 py-1 rounded-lg border border-[#dce9ff]">
@@ -218,7 +218,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   person
                 </span>
                 <span className="font-body text-[12px] text-[#0b1c30] font-medium">
-                  {selectedSeats.length} Passager{selectedSeats.length > 1 ? 's' : ''}
+                  {purchaseQuantity} {event ? 'billet(s)' : `passager${purchaseQuantity > 1 ? 's' : ''}`}
                 </span>
               </div>
             </div>
@@ -355,67 +355,13 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           </div>
         </div>
 
-        {/* 5. Phone Input & Instructions Box */}
-        {operatorInfo[selectedMethod].isMomo && (
-          <div className="bg-white rounded-2xl p-4 shadow-xs border border-[#e2bfb0]/30 flex flex-col gap-2.5">
-            <div className="flex items-center justify-between">
-              <label
-                htmlFor="momo-phone"
-                className="font-headline text-[13px] text-[#0b1c30] font-bold"
-              >
-                Numéro de débit Mobile Money
-              </label>
-              <span className="font-headline text-[10px] text-[#216b43] font-bold uppercase tracking-wider bg-[#a5f0be]/30 px-2 py-0.5 rounded-full border border-[#a5f0be]">
-                Compte vérifié
-              </span>
-            </div>
-
-            <div className="relative flex items-center w-full">
-              {/* CI Flag and Country Code prefix */}
-              <div className="absolute left-3 flex items-center gap-1.5 pointer-events-none select-none">
-                <span className="inline-flex items-center justify-center w-5 h-3.5 rounded-xs overflow-hidden shadow-xs border border-black/10">
-                  <span className="w-1/3 h-full bg-[#f77f00]"></span>
-                  <span className="w-1/3 h-full bg-[#ffffff]"></span>
-                  <span className="w-1/3 h-full bg-[#009e49]"></span>
-                </span>
-                <span className="font-headline text-[14px] text-[#0b1c30] font-bold">
-                  +225
-                </span>
-                <span className="w-px h-5 bg-[#e2bfb0] ml-1"></span>
-              </div>
-
-              <input
-                id="momo-phone"
-                type="tel"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="00 00 00 00 00"
-                className="w-full h-12 pl-24 pr-10 bg-[#eff4ff] rounded-xl font-headline text-[16px] text-[#0b1c30] font-bold focus:outline-none focus:bg-white focus:ring-2 focus:ring-[#ff6b00] border border-[#dce9ff] transition-all"
-              />
-
-              {phoneNumber && (
-                <button
-                  type="button"
-                  aria-label="Effacer le numéro"
-                  onClick={() => setPhoneNumber('')}
-                  className="absolute right-3 w-6 h-6 rounded-full bg-[#dce9ff] flex items-center justify-center text-[#5a4136] hover:text-[#0b1c30] cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-[16px]">close</span>
-                </button>
-              )}
-            </div>
-
-            {/* Dynamic Explanatory Instruction Box */}
-            <div className="flex items-start gap-2.5 bg-[#eff4ff] p-3 rounded-xl border border-[#dce9ff]">
-              <span className="material-symbols-outlined text-[#216b43] text-[20px] flex-shrink-0 mt-0.5">
-                notifications_active
-              </span>
-              <p className="font-body text-[12px] text-[#0b1c30] leading-snug">
-                {operatorInfo[selectedMethod].instruction}
-              </p>
-            </div>
-          </div>
-        )}
+        {/* Checkout information */}
+        <div className="bg-white rounded-2xl p-4 shadow-xs border border-[#e2bfb0]/30 flex items-start gap-2.5">
+          <span className="material-symbols-outlined text-[#216b43] text-[20px] flex-shrink-0">verified_user</span>
+          <p className="font-body text-[12px] text-[#0b1c30] leading-snug">
+            {operatorInfo[selectedMethod].instruction} Le code PIN Mobile Money ne doit être saisi que dans l’application ou le checkout officiel de l’opérateur.
+          </p>
+        </div>
 
         {/* 6. Transparent Fee Breakdown */}
         <div className="bg-white rounded-2xl p-4 shadow-xs border border-[#e2bfb0]/30 flex flex-col gap-2">
@@ -430,7 +376,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
           <div className="flex flex-col gap-1.5 pt-1 font-body text-[12px]">
             <div className="flex justify-between items-center text-[#5a4136]">
-              <span>Tarif billet transporteur ({trip.carrier})</span>
+              <span>{event ? 'Billets événement' : `Tarif transporteur (${trip.carrier})`}</span>
               <span className="text-[#0b1c30] font-bold">
                 {totalAmount.toLocaleString('fr-FR')} FCFA
               </span>
@@ -441,14 +387,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 <span>Frais de service plateforme TicketHub</span>
                 <span className="material-symbols-outlined text-[14px] text-[#565e74]">info</span>
               </div>
-              <span className="text-[#216b43] font-bold">
-                0 FCFA <span className="text-[10px] font-normal uppercase">(Offerts)</span>
-              </span>
+              <span className="text-[#5a4136] font-bold">Selon les conditions affichées</span>
             </div>
 
             <div className="flex justify-between items-center text-[#5a4136]">
               <span>Frais de passerelle GeniusPay</span>
-              <span className="text-[#216b43] font-bold">Inclus (0 FCFA)</span>
+              <span className="text-[#5a4136] font-bold">Confirmés avant autorisation</span>
             </div>
           </div>
 
@@ -457,10 +401,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <div className="flex justify-between items-center">
             <div className="flex flex-col">
               <span className="font-headline text-[14px] text-[#0b1c30] font-bold">
-                Total net débité
+                Montant de la réservation
               </span>
               <span className="font-body text-[11px] text-[#5a4136]">
-                Aucun frais caché à la confirmation
+                Les frais éventuels seront indiqués par GeniusPay avant paiement
               </span>
             </div>
             <span className="font-headline text-[18px] text-[#ff6b00] font-bold">
@@ -481,15 +425,17 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
         {/* 8. Pay Action CTA */}
         <div className="pt-1 flex flex-col gap-2">
+          {paymentError && <p role="alert" className="p-3 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[12px]">{paymentError}</p>}
           <button
             type="button"
             onClick={handleStartPayment}
-            className="w-full h-14 bg-gradient-to-r from-[#ff6b00] to-[#ff842b] active:scale-[0.98] transition-transform rounded-2xl flex items-center justify-between px-5 shadow-lg shadow-[#ff6b00]/25 text-white font-headline text-[16px] font-bold cursor-pointer"
+            disabled={isProcessing || remainingSeconds <= 0}
+            className="w-full h-14 bg-gradient-to-r from-[#ff6b00] to-[#ff842b] active:scale-[0.98] transition-transform rounded-2xl flex items-center justify-between px-5 shadow-lg shadow-[#ff6b00]/25 text-white font-headline text-[15px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]">bolt</span>
               <span>
-                Payer {totalAmount.toLocaleString('fr-FR')} FCFA avec {operatorInfo[selectedMethod].name}
+                {isProcessing ? 'Ouverture du checkout…' : `Continuer vers le checkout GeniusPay`}
               </span>
             </div>
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
@@ -498,64 +444,15 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           </button>
 
           <p className="font-body text-[11px] text-center text-[#5a4136]">
-            En confirmant, vous acceptez les CGV de TicketHub CI &amp; de l'opérateur {trip.carrier}.
+            Vous serez redirigé vers le checkout hébergé. Ne partagez jamais votre code PIN dans TicketHub.
           </p>
         </div>
       </div>
 
-      {/* 9. Processing Overlay Modal */}
       {isProcessing && (
-        <div className="fixed inset-0 z-50 bg-[#0b1c30]/70 backdrop-blur-sm flex items-end sm:items-center justify-center p-4 transition-opacity duration-300">
-          <div className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl flex flex-col items-center text-center gap-4 animate-in fade-in zoom-in duration-300">
-            <div className="relative w-16 h-16 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full border-4 border-[#dce9ff] border-t-[#ff6b00] animate-spin"></div>
-              <span className="material-symbols-outlined text-[#ff6b00] text-[28px]">
-                lock_clock
-              </span>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <h3 className="font-headline text-[20px] text-[#0b1c30] font-bold">
-                {processingStep === 1 ? 'Demande envoyée !' : 'Paiement confirmé !'}
-              </h3>
-              <p className="font-body text-[13px] text-[#5a4136] leading-relaxed">
-                {processingStep === 1 ? (
-                  <>
-                    Veuillez autoriser le débit sur votre application{' '}
-                    <strong className="font-bold text-[#ff6b00]">
-                      {operatorInfo[selectedMethod].name}
-                    </strong>{' '}
-                    au <strong className="font-bold text-[#0b1c30]">{phoneNumber}</strong>.
-                  </>
-                ) : (
-                  <>
-                    Transaction validée par <strong className="font-bold text-[#216b43]">GeniusPay</strong>. Émission de votre billet officiel...
-                  </>
-                )}
-              </p>
-            </div>
-
-            {/* Live status tracker indicator */}
-            <div className="w-full bg-[#eff4ff] p-3 rounded-2xl flex items-center gap-2.5 text-left border border-[#dce9ff]">
-              <span className="w-3 h-3 rounded-full bg-[#216b43] animate-ping flex-shrink-0"></span>
-              <div className="flex flex-col min-w-0">
-                <span className="font-headline text-[12px] text-[#0b1c30] font-bold">
-                  {processingStep === 1 ? "En attente d'idempotence" : 'Webhook exécuté avec succès'}
-                </span>
-                <span className="font-body text-[10px] text-[#5a4136] truncate">
-                  ID session: GP-CI-84920-{selectedMethod.toUpperCase()}
-                </span>
-              </div>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsProcessing(false)}
-              className="w-full py-2.5 rounded-xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[13px] font-bold hover:bg-[#dce9ff] transition-colors cursor-pointer"
-            >
-              Modifier le mode de paiement
-            </button>
-          </div>
+        <div role="status" className="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-md rounded-2xl bg-[#0b1c30] p-3 text-white shadow-xl flex items-center gap-2">
+          <span className="material-symbols-outlined animate-spin">progress_activity</span>
+          <span className="font-body text-[12px]">Connexion au checkout hébergé…</span>
         </div>
       )}
     </div>

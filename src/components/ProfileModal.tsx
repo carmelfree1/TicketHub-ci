@@ -1,194 +1,183 @@
-import React from 'react';
-import { UserRole, AppScreen } from '../types';
-import { ASSETS } from '../data/mockData';
+import React, { useState } from 'react';
+import { AppScreen, AuthUser } from '../types';
+
+interface Credentials {
+  fullName?: string;
+  phone: string;
+  password: string;
+  partnerInviteCode?: string;
+}
 
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userRole: UserRole;
-  onSelectRole: (role: UserRole) => void;
+  user: AuthUser | null;
+  onAuthenticate: (mode: 'login' | 'register', credentials: Credentials) => Promise<void>;
+  onLogout: () => Promise<void>;
   onNavigateScreen: (screen: AppScreen) => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
   onClose,
-  userRole,
-  onSelectRole,
+  user,
+  onAuthenticate,
+  onLogout,
   onNavigateScreen,
 }) => {
+  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [fullName, setFullName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [partnerInviteCode, setPartnerInviteCode] = useState('');
+  const [isBusy, setIsBusy] = useState(false);
+  const [error, setError] = useState('');
+
   if (!isOpen) return null;
 
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setIsBusy(true);
+    try {
+      await onAuthenticate(mode, {
+        fullName: fullName.trim(),
+        phone: phone.trim(),
+        password,
+        partnerInviteCode: partnerInviteCode.trim() || undefined,
+      });
+      setPassword('');
+      onClose();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Connexion impossible. Réessayez.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const navigate = (screen: AppScreen) => {
+    onNavigateScreen(screen);
+    onClose();
+  };
+
   return (
-    <div className="fixed inset-0 z-50 bg-[#0b1c30]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200">
-      <div className="w-full max-w-sm bg-white rounded-3xl p-5 shadow-2xl flex flex-col gap-4 border border-[#e2bfb0]/30 animate-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <span className="font-headline text-[16px] font-bold text-[#0b1c30]">
-            Profil &amp; Mode d'accès
-          </span>
+    <div
+      className="fixed inset-0 z-50 bg-[#0b1c30]/60 backdrop-blur-xs flex items-end sm:items-center justify-center p-3 animate-in fade-in duration-200"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="profile-modal-title"
+        className="w-full max-w-sm max-h-[92vh] overflow-y-auto bg-white rounded-3xl p-5 shadow-2xl flex flex-col gap-4 border border-[#e2bfb0]/30 animate-in zoom-in-95 duration-200"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h2 id="profile-modal-title" className="font-headline text-[16px] font-bold text-[#0b1c30]">
+              {user ? 'Mon compte TicketHub' : 'Connexion / inscription'}
+            </h2>
+            <p className="font-body text-[11px] text-[#5a4136]">
+              {user ? 'Profil et accès selon vos autorisations.' : 'Connectez-vous pour réserver et retrouver vos billets.'}
+            </p>
+          </div>
           <button
             type="button"
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-[#eff4ff] flex items-center justify-center text-[#5a4136] hover:text-[#0b1c30] cursor-pointer"
+            aria-label="Fermer"
+            className="w-9 h-9 rounded-full bg-[#eff4ff] flex items-center justify-center text-[#5a4136] hover:text-[#0b1c30] cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px]">close</span>
           </button>
         </div>
 
-        {/* Profile Card */}
-        <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#eff4ff] border border-[#dce9ff]">
-          <img
-            src={userRole === 'traveler' ? ASSETS.userAvatar : ASSETS.partnerAvatar}
-            alt="Avatar"
-            className="w-12 h-12 rounded-full object-cover ring-2 ring-[#ff6b00]/30 flex-shrink-0"
-          />
-          <div className="flex flex-col min-w-0">
-            <span className="font-headline text-[15px] font-bold text-[#0b1c30] truncate">
-              {userRole === 'traveler' ? 'Awa KOUASSI' : 'Agent Konan #AG-442'}
-            </span>
-            <span className="font-body text-[12px] text-[#5a4136]">
-              {userRole === 'traveler' ? '+225 07 88 45 12 30' : 'Gare Centrale UTB Adjamé'}
-            </span>
-            <span className="font-headline text-[10px] text-[#00522e] font-bold uppercase flex items-center gap-1 mt-0.5">
-              <span className="material-symbols-outlined text-[13px] fill">verified</span>
-              {userRole === 'traveler' ? 'Compte Vérifié CI' : 'Contrôleur Officiel UTB'}
-            </span>
-          </div>
-        </div>
-
-        {/* Mode Switcher */}
-        <div className="flex flex-col gap-2">
-          <span className="font-headline text-[11px] uppercase tracking-wider text-[#5a4136] font-bold">
-            Basculer d'environnement
-          </span>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('traveler');
-                onNavigateScreen('explorer');
-                onClose();
-              }}
-              className={`p-3 rounded-2xl flex flex-col items-center text-center gap-1.5 transition-all cursor-pointer border ${
-                userRole === 'traveler'
-                  ? 'bg-[#ffdbcc]/40 border-[#ff6b00] ring-1 ring-[#ff6b00]'
-                  : 'bg-white border-[#dce9ff] hover:bg-[#eff4ff]'
-              }`}
-            >
-              <div className="w-9 h-9 rounded-xl bg-[#ffdbcc] text-[#a04100] flex items-center justify-center">
-                <span className="material-symbols-outlined text-[20px]">person</span>
+        {user ? (
+          <>
+            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#eff4ff] border border-[#dce9ff]">
+              <div className="w-12 h-12 rounded-full bg-[#ffdbcc] text-[#a04100] flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-[26px]">
+                  {user.role === 'partner' ? 'badge' : 'person'}
+                </span>
               </div>
-              <span className="font-headline text-[12px] font-bold text-[#0b1c30]">
-                Espace Voyageur
-              </span>
-              <span className="font-body text-[10px] text-[#5a4136]">
-                Recherche, Sièges, Paiement Wave, Pass
-              </span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('partner');
-                onNavigateScreen('partner-dashboard');
-                onClose();
-              }}
-              className={`p-3 rounded-2xl flex flex-col items-center text-center gap-1.5 transition-all cursor-pointer border ${
-                userRole === 'partner'
-                  ? 'bg-[#ffdbcc]/40 border-[#ff6b00] ring-1 ring-[#ff6b00]'
-                  : 'bg-white border-[#dce9ff] hover:bg-[#eff4ff]'
-              }`}
-            >
-              <div className="w-9 h-9 rounded-xl bg-[#a5f0be] text-[#00522e] flex items-center justify-center">
-                <span className="material-symbols-outlined text-[20px]">badge</span>
+              <div className="flex flex-col min-w-0">
+                <span className="font-headline text-[15px] font-bold text-[#0b1c30] truncate">{user.fullName}</span>
+                <span className="font-body text-[12px] text-[#5a4136]">{user.phone}</span>
+                <span className="font-headline text-[10px] text-[#00522e] font-bold uppercase mt-0.5">
+                  {user.role === 'partner' ? 'Compte partenaire authentifié' : 'Compte voyageur'}
+                </span>
               </div>
-              <span className="font-headline text-[12px] font-bold text-[#0b1c30]">
-                Espace UTB Pro
-              </span>
-              <span className="font-body text-[10px] text-[#5a4136]">
-                Ventes, Scanner QR, Flotte &amp; Manifeste
-              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => navigate(user.role === 'partner' ? 'partner-dashboard' : 'tickets-wallet')} className="p-3 rounded-2xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#dce9ff]">
+                <span className="material-symbols-outlined text-[18px]">{user.role === 'partner' ? 'analytics' : 'confirmation_number'}</span>
+                {user.role === 'partner' ? 'Espace partenaire' : 'Mes billets'}
+              </button>
+              <button type="button" onClick={() => navigate('explorer')} className="p-3 rounded-2xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#dce9ff]">
+                <span className="material-symbols-outlined text-[18px]">explore</span>
+                Explorer
+              </button>
+            </div>
+            <button
+              type="button"
+              onClick={async () => {
+                setIsBusy(true);
+                try {
+                  await onLogout();
+                  setError('');
+                } catch (cause) {
+                  setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.');
+                } finally {
+                  setIsBusy(false);
+                }
+              }}
+              disabled={isBusy}
+              className="w-full py-2.5 rounded-xl bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60"
+            >
+              {isBusy ? 'Veuillez patienter…' : 'Se déconnecter'}
             </button>
-          </div>
-        </div>
+          </>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 p-1 rounded-xl bg-[#eff4ff] gap-1">
+              <button type="button" onClick={() => { setMode('login'); setError(''); }} className={`py-2 rounded-lg font-headline text-[12px] font-bold ${mode === 'login' ? 'bg-white shadow-xs text-[#0b1c30]' : 'text-[#5a4136]'}`}>Connexion</button>
+              <button type="button" onClick={() => { setMode('register'); setError(''); }} className={`py-2 rounded-lg font-headline text-[12px] font-bold ${mode === 'register' ? 'bg-white shadow-xs text-[#0b1c30]' : 'text-[#5a4136]'}`}>Créer un compte</button>
+            </div>
 
-        {/* Quick Screen Access Jump Menu */}
-        <div className="flex flex-col gap-1.5">
-          <span className="font-headline text-[11px] uppercase tracking-wider text-[#5a4136] font-bold">
-            Accès direct aux écrans
-          </span>
-          <div className="grid grid-cols-2 gap-1.5 font-headline text-[11px] font-semibold">
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('traveler');
-                onNavigateScreen('explorer');
-                onClose();
-              }}
-              className="p-2 rounded-xl bg-[#eff4ff] hover:bg-[#dce9ff] text-left truncate text-[#0b1c30] cursor-pointer"
-            >
-              1. 🚌 Explorer &amp; Recherche
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('traveler');
-                onNavigateScreen('seat-selection');
-                onClose();
-              }}
-              className="p-2 rounded-xl bg-[#eff4ff] hover:bg-[#dce9ff] text-left truncate text-[#0b1c30] cursor-pointer"
-            >
-              2. 💺 Choix Sièges Car (41)
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('traveler');
-                onNavigateScreen('payment');
-                onClose();
-              }}
-              className="p-2 rounded-xl bg-[#eff4ff] hover:bg-[#dce9ff] text-left truncate text-[#0b1c30] cursor-pointer"
-            >
-              3. ⚡ Paiement Mobile Money
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('traveler');
-                onNavigateScreen('digital-pass');
-                onClose();
-              }}
-              className="p-2 rounded-xl bg-[#eff4ff] hover:bg-[#dce9ff] text-left truncate text-[#0b1c30] cursor-pointer"
-            >
-              4. 📱 Pass Digital Sécurisé
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('partner');
-                onNavigateScreen('partner-scanner');
-                onClose();
-              }}
-              className="p-2 rounded-xl bg-[#a5f0be]/40 hover:bg-[#a5f0be] text-left truncate text-[#00522e] cursor-pointer"
-            >
-              5. 📷 Scanner Contrôleur
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                onSelectRole('partner');
-                onNavigateScreen('partner-manifest');
-                onClose();
-              }}
-              className="p-2 rounded-xl bg-[#a5f0be]/40 hover:bg-[#a5f0be] text-left truncate text-[#00522e] cursor-pointer"
-            >
-              6. 📋 Manifeste Embarquement
-            </button>
-          </div>
-        </div>
-      </div>
+            <form onSubmit={submit} className="flex flex-col gap-3">
+              {mode === 'register' && (
+                <label className="flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
+                  Nom complet
+                  <input required minLength={2} maxLength={100} autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]" placeholder="Awa KOUASSI" />
+                </label>
+              )}
+              <label className="flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
+                Téléphone ivoirien
+                <input required type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]" placeholder="07 00 00 00 00" />
+              </label>
+              <label className="flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
+                Mot de passe
+                <input required type="password" minLength={mode === 'register' ? 10 : 1} maxLength={128} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]" placeholder={mode === 'register' ? '10 caractères minimum' : 'Votre mot de passe'} />
+              </label>
+              {mode === 'register' && (
+                <details className="rounded-xl bg-[#eff4ff] px-3 py-2 border border-[#dce9ff]">
+                  <summary className="font-headline text-[11px] font-bold text-[#0b1c30] cursor-pointer">Inscription partenaire</summary>
+                  <label className="mt-2 flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
+                    Code d’invitation partenaire
+                    <input value={partnerInviteCode} onChange={(event) => setPartnerInviteCode(event.target.value)} className="h-10 px-3 rounded-xl bg-white border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#216b43]" autoComplete="off" />
+                  </label>
+                </details>
+              )}
+              {error && <p role="alert" className="p-2.5 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[12px]">{error}</p>}
+              <button disabled={isBusy} type="submit" className="w-full min-h-[46px] rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
+                {isBusy ? 'Veuillez patienter…' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
+              </button>
+              <p className="font-body text-[10px] text-center text-[#5a4136]">Vos données de connexion sont envoyées uniquement à l’API TicketHub.</p>
+            </form>
+          </>
+        )}
+
+      </section>
     </div>
   );
 };

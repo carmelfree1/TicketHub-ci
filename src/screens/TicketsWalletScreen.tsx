@@ -1,181 +1,151 @@
-import React from 'react';
-import { DigitalTicket } from '../types';
-import { ASSETS } from '../data/mockData';
+import React, { useEffect, useState } from 'react';
+import { AuthUser, DigitalTicket } from '../types';
+import { api, ApiError, TicketRecord } from '../services/api';
+import { toDigitalTicket } from '../services/ticketMapper';
 
 interface TicketsWalletScreenProps {
-  currentTicket: DigitalTicket;
+  user: AuthUser | null;
   onViewPass: (ticket: DigitalTicket) => void;
   onExplore: () => void;
+  onLogin: () => void;
 }
 
-export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({
-  currentTicket,
-  onViewPass,
-  onExplore,
-}) => {
+function formatDate(value?: string): string {
+  if (!value) return 'Date à confirmer';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? 'Date à confirmer' : new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(date);
+}
+
+export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, onViewPass, onExplore, onLogin }) => {
+  const [tickets, setTickets] = useState<TicketRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [requiresLogin, setRequiresLogin] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    if (!user) {
+      setTickets([]);
+      setRequiresLogin(true);
+      setError('Connectez-vous pour consulter les billets rattachés à votre compte.');
+      setLoading(false);
+      return () => { active = false; };
+    }
+    setLoading(true);
+    api.tickets()
+      .then((result) => {
+        if (active) {
+          setTickets(result);
+          setRequiresLogin(false);
+          setError('');
+        }
+      })
+      .catch((reason: unknown) => {
+        if (!active) return;
+        if (reason instanceof ApiError && reason.status === 401) {
+          setRequiresLogin(true);
+          setError('Connectez-vous pour consulter les billets rattachés à votre compte.');
+        } else {
+          setError(reason instanceof Error ? reason.message : 'Impossible de charger vos billets.');
+        }
+      })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [user?.id]);
+
+  const activeCount = tickets.filter((ticket) => ticket.status === 'active').length;
+
   return (
     <div className="flex flex-col w-full pb-24 max-w-md mx-auto px-4 pt-2">
-      {/* Header Info */}
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="font-headline text-[20px] font-bold text-[#0b1c30]">
-            Mes Billets &amp; Pass
-          </h2>
-          <p className="font-body text-[12px] text-[#5a4136]">
-            Vos titres officiels certifiés hors-ligne
-          </p>
+          <h2 className="font-headline text-[20px] font-bold text-[#0b1c30]">Mes billets</h2>
+          <p className="font-body text-[12px] text-[#5a4136]">Billets émis après confirmation du paiement</p>
         </div>
         <span className="px-2.5 py-1 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[11px] font-bold border border-[#ffb693]">
-          2 Actifs
+          {activeCount} actif{activeCount === 1 ? '' : 's'}
         </span>
       </div>
 
-      {/* Ticket 1: Current active intercity bus pass */}
-      <div className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2bfb0]/40 flex flex-col gap-3 mb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[11px] font-bold border border-[#ffb693]">
-              {currentTicket.carrier}
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-[#eff4ff] text-[#0b1c30] font-headline text-[10px] font-bold">
-              Bus VIP
-            </span>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-[#a5f0be] text-[#00522e] font-headline text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#216b43] animate-pulse"></span>
-            Valide
-          </span>
+      {loading && (
+        <div role="status" className="p-5 rounded-2xl bg-white border border-[#dce9ff] text-center font-body text-[13px] text-[#5a4136]">
+          Chargement de votre portefeuille…
         </div>
+      )}
 
-        <div className="flex items-center justify-between">
-          <div>
-            <span className="font-headline text-[18px] font-bold text-[#0b1c30] leading-none block">
-              {currentTicket.departCity}
-            </span>
-            <span className="font-body text-[11px] text-[#5a4136]">
-              {currentTicket.departStation}
-            </span>
-          </div>
-
-          <div className="flex flex-col items-center px-2">
-            <span className="material-symbols-outlined text-[#ff6b00] text-[20px]">
-              trending_flat
-            </span>
-            <span className="font-headline text-[10px] text-[#5a4136]">Direct</span>
-          </div>
-
-          <div className="text-right">
-            <span className="font-headline text-[18px] font-bold text-[#0b1c30] leading-none block">
-              {currentTicket.arrivalCity}
-            </span>
-            <span className="font-body text-[11px] text-[#5a4136]">
-              {currentTicket.arrivalStation}
-            </span>
-          </div>
+      {!loading && error && (
+        <div role="alert" className="p-4 rounded-2xl bg-[#ffdad6] border border-[#93000a]/10 text-[#93000a] flex flex-col gap-3">
+          <p className="font-body text-[12px]">{error}</p>
+          {requiresLogin && <button type="button" onClick={onLogin} className="self-start px-4 py-2 rounded-xl bg-[#93000a] text-white font-headline text-[12px] font-bold cursor-pointer">Se connecter</button>}
         </div>
+      )}
 
-        <div className="grid grid-cols-3 gap-2 bg-[#eff4ff] p-2.5 rounded-xl border border-[#dce9ff] text-center">
-          <div>
-            <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">
-              Siège
-            </span>
-            <span className="font-headline text-[14px] font-bold text-[#ff6b00]">
-              N° {currentTicket.seats.join(', ')}
-            </span>
-          </div>
-          <div>
-            <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">
-              Départ
-            </span>
-            <span className="font-headline text-[14px] font-bold text-[#0b1c30]">
-              {currentTicket.departureTime}
-            </span>
-          </div>
-          <div>
-            <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">
-              Prix
-            </span>
-            <span className="font-headline text-[14px] font-bold text-[#216b43]">
-              {currentTicket.price.toLocaleString('fr-FR')} F
-            </span>
-          </div>
+      {!loading && !error && tickets.length === 0 && (
+        <div className="p-5 rounded-2xl bg-white border border-[#dce9ff] text-center flex flex-col items-center gap-2">
+          <span className="material-symbols-outlined text-[32px] text-[#ff6b00]">confirmation_number</span>
+          <h3 className="font-headline text-[15px] font-bold text-[#0b1c30]">Aucun billet pour le moment</h3>
+          <p className="font-body text-[12px] text-[#5a4136]">Vos billets apparaîtront ici après confirmation du paiement par le serveur.</p>
         </div>
+      )}
 
-        <button
-          type="button"
-          onClick={() => onViewPass(currentTicket)}
-          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[13px] font-bold shadow-md hover:opacity-95 active:scale-95 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
-          <span>Afficher le Pass Digital (QR &amp; Embarquement)</span>
-        </button>
+      <div className="flex flex-col gap-3">
+        {tickets.map((record) => {
+          const ticket = toDigitalTicket(record);
+          const isEvent = record.productType === 'event';
+          const isActive = record.status === 'active';
+          return (
+            <article key={record.id} className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2bfb0]/40 flex flex-col gap-3">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex flex-col gap-1">
+                  <span className="self-start px-2.5 py-0.5 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[10px] font-bold border border-[#ffb693]">
+                    {isEvent ? 'Événement' : record.carrier || 'Transport'}
+                  </span>
+                  <h3 className="font-headline text-[15px] font-bold text-[#0b1c30] truncate">
+                    {isEvent ? record.eventTitle || 'Billet événementiel' : `${record.departCity || ''} → ${record.arrivalCity || ''}`}
+                  </h3>
+                  <p className="font-body text-[11px] text-[#5a4136] truncate">
+                    {isEvent ? `${record.venue || ''}${record.city ? ` · ${record.city}` : ''}` : `${record.departStation || ''} · ${record.arrivalStation || ''}`}
+                  </p>
+                </div>
+                <span className={`shrink-0 px-2.5 py-0.5 rounded-full font-headline text-[10px] font-bold uppercase tracking-wider ${isActive ? 'bg-[#a5f0be] text-[#00522e]' : 'bg-[#eff4ff] text-[#5a4136]'}`}>
+                  {record.status === 'active' ? 'Valide' : record.status === 'used' ? 'Utilisé' : 'Annulé'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 bg-[#eff4ff] p-2.5 rounded-xl border border-[#dce9ff] text-center">
+                <div className="min-w-0">
+                  <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">{isEvent ? 'Catégorie' : 'Siège'}</span>
+                  <span className="font-headline text-[12px] font-bold text-[#ff6b00] truncate block">
+                    {isEvent ? record.category || 'Entrée' : record.seats?.join(', ') || '—'}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">{isEvent ? 'Événement' : 'Départ'}</span>
+                  <span className="font-headline text-[12px] font-bold text-[#0b1c30]">{record.departureTime || '—'}</span>
+                </div>
+                <div>
+                  <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">Date · Prix</span>
+                  <span className="font-headline text-[11px] font-bold text-[#216b43] block">{formatDate(record.departureDate)}</span>
+                  <span className="font-body text-[10px] text-[#0b1c30]">{Number(record.price).toLocaleString('fr-FR')} F</span>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-body text-[10px] text-[#5a4136] truncate">Billet {record.ticketCode}</span>
+                <button type="button" onClick={() => onViewPass(ticket)} className="shrink-0 px-3 py-2 rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer">
+                  <span className="material-symbols-outlined text-[16px]">qr_code_2</span>Afficher le QR
+                </button>
+              </div>
+            </article>
+          );
+        })}
       </div>
 
-      {/* Ticket 2: Concert Pass */}
-      <div className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2bfb0]/40 flex flex-col gap-3 mb-4">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[11px] font-bold border border-[#ffb693]">
-              Concert Live
-            </span>
-            <span className="px-2 py-0.5 rounded-full bg-[#dce9ff] text-[#0b1c30] font-headline text-[10px] font-bold">
-              Pass VIP
-            </span>
-          </div>
-          <span className="px-2.5 py-0.5 rounded-full bg-[#a5f0be] text-[#00522e] font-headline text-[10px] font-bold uppercase tracking-wider flex items-center gap-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#216b43]"></span>
-            Confirmé
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <img
-            src={ASSETS.didiBConcert}
-            alt="Didi B"
-            className="w-14 h-14 rounded-2xl object-cover flex-shrink-0"
-            referrerPolicy="no-referrer"
-          />
-          <div className="flex flex-col min-w-0">
-            <h3 className="font-headline text-[15px] font-bold text-[#0b1c30] truncate">
-              Concert Live Didi B • Sacré Tour
-            </h3>
-            <span className="font-body text-[11px] text-[#5a4136]">
-              Samedi 26 Octobre • 20h00
-            </span>
-            <span className="font-body text-[11px] text-[#ff6b00] font-bold">
-              Palais de la Culture, Treichville
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center justify-between pt-1 border-t border-[#eff4ff]">
-          <span className="font-body text-[11px] text-[#5a4136]">
-            Pass N° TKH-DIDI-9214
-          </span>
-          <span className="font-headline text-[14px] font-bold text-[#0b1c30]">
-            10 000 FCFA
-          </span>
-        </div>
-      </div>
-
-      {/* Discovery CTA */}
-      <div className="p-4 rounded-2xl bg-[#eff4ff] border border-[#dce9ff] text-center flex flex-col items-center gap-2">
-        <span className="material-symbols-outlined text-[#ff6b00] text-[28px]">
-          airplane_ticket
-        </span>
-        <h4 className="font-headline text-[14px] font-bold text-[#0b1c30]">
-          Envie d'un nouveau voyage ?
-        </h4>
-        <p className="font-body text-[12px] text-[#5a4136] max-w-xs">
-          Comparez en direct plus de 28 compagnies interurbaines à Abidjan, Bouaké et Yamoussoukro.
-        </p>
-        <button
-          type="button"
-          onClick={onExplore}
-          className="mt-1 px-4 py-2 bg-[#ff6b00] text-white rounded-xl font-headline text-[13px] font-bold active:scale-95 transition-transform cursor-pointer"
-        >
-          Rechercher un départ
-        </button>
+      <div className="mt-4 p-4 rounded-2xl bg-[#eff4ff] border border-[#dce9ff] text-center flex flex-col items-center gap-2">
+        <span className="material-symbols-outlined text-[#ff6b00] text-[28px]">explore</span>
+        <h4 className="font-headline text-[14px] font-bold text-[#0b1c30]">Prêt pour un nouveau départ ?</h4>
+        <p className="font-body text-[12px] text-[#5a4136] max-w-xs">Recherchez un trajet ou un événement et retrouvez vos billets ici après paiement confirmé.</p>
+        <button type="button" onClick={onExplore} className="mt-1 px-4 py-2 bg-[#ff6b00] text-white rounded-xl font-headline text-[13px] font-bold active:scale-95 transition-transform cursor-pointer">Explorer</button>
       </div>
     </div>
   );

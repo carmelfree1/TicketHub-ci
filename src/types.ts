@@ -1,7 +1,9 @@
 export type AppScreen =
   | 'explorer'
   | 'seat-selection'
+  | 'event-selection'
   | 'payment'
+  | 'payment-result'
   | 'digital-pass'
   | 'tickets-wallet'
   | 'partner-dashboard'
@@ -12,6 +14,13 @@ export type AppScreen =
 export type UserRole = 'traveler' | 'partner';
 
 export type PaymentMethodId = 'wave' | 'orange' | 'mtn' | 'moov' | 'cb';
+
+export interface AuthUser {
+  id: string;
+  fullName: string;
+  phone: string;
+  role: UserRole;
+}
 
 export interface TripDeparture {
   id: string;
@@ -32,6 +41,29 @@ export interface TripDeparture {
   amenities: string[];
   vehicle: string;
   registration: string;
+  departAt?: string;
+  seatCapacity?: number;
+  occupiedSeats?: number[];
+}
+
+export interface TicketCategory {
+  id: string;
+  name: string;
+  price: number;
+  capacity: number;
+  available: number;
+}
+
+export interface TicketedEvent {
+  id: string;
+  title: string;
+  eventType: 'concert' | 'sport' | 'show';
+  description: string;
+  venue: string;
+  city: string;
+  startsAt: string;
+  imageUrl: string;
+  categories: TicketCategory[];
 }
 
 export interface BusSeat {
@@ -68,6 +100,12 @@ export interface DigitalTicket {
   qrPayload: string;
   issuedAt: string;
   luggage: string;
+  productType?: 'transport' | 'event';
+  eventTitle?: string;
+  venue?: string;
+  eventCategory?: string;
+  startsAt?: string;
+  quantity?: number;
 }
 
 export interface ManifestPassenger {
