@@ -1,3 +1,14 @@
+import { Link } from 'react-router';
+import { StatusPanel, primaryActionClass } from '@/components/feedback/StatusPanel';
+
 export function NotFoundPage() {
-  return <main className="mx-auto max-w-lg px-6 py-16 text-center"><h1 className="text-2xl font-bold">Page introuvable</h1><p className="mt-2 text-sm text-slate-600">Cette page n’existe pas ou a été déplacée.</p></main>;
+  return (
+    <StatusPanel
+      tone="empty"
+      icon="search_off"
+      title="Page introuvable"
+      description="L’adresse demandée n’existe pas ou a été déplacée. Vérifiez le lien, ou revenez au catalogue."
+      actions={<Link to="/" className={primaryActionClass}>Retour au catalogue</Link>}
+    />
+  );
 }

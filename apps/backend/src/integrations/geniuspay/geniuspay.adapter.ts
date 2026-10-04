@@ -21,8 +21,8 @@ export const geniusPayAdapter = {
       currency: 'XOF',
       description: `${input.description} — réservation ${input.bookingId}`.slice(0, 500),
       customer: { ...input.customer, country: 'CI' },
-      successUrl: `${input.appUrl}/?payment=return&booking=${encodeURIComponent(input.bookingId)}`,
-      errorUrl: `${input.appUrl}/?payment=failed&booking=${encodeURIComponent(input.bookingId)}`,
+      successUrl: `${input.appUrl}/paiement/retour?payment=return&booking=${encodeURIComponent(input.bookingId)}`,
+      errorUrl: `${input.appUrl}/paiement/retour?payment=failed&booking=${encodeURIComponent(input.bookingId)}`,
       metadata: {
         booking_id: input.bookingId,
         user_id: input.userId,

@@ -3,7 +3,8 @@ import { formatXof } from '@tickethub/shared';
 import { type TripDeparture, type PaymentMethodId, type TicketCategory, type TicketedEvent } from '@/types';
 
 interface PaymentScreenProps {
-  trip: TripDeparture;
+  /** Required for a bus booking; absent for an event, whose details come from `event`. */
+  trip?: TripDeparture;
   selectedSeats: number[];
   totalAmount: number;
   bookingId: string;
@@ -30,17 +31,17 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   const [remainingSeconds, setRemainingSeconds] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentError, setPaymentError] = useState('');
-  const purchaseTitle = event?.title || trip.carrier;
-  const originLabel = event?.city || trip.departCity;
-  const originDetails = event?.venue || trip.departStation;
-  const destinationLabel = event?.city || trip.arrivalCity;
-  const destinationDetails = event?.venue || trip.arrivalStation;
+  const purchaseTitle = event?.title || trip?.carrier || '';
+  const originLabel = event?.city || trip?.departCity || '';
+  const originDetails = event?.venue || trip?.departStation || '';
+  const destinationLabel = event?.city || trip?.arrivalCity || '';
+  const destinationDetails = event?.venue || trip?.arrivalStation || '';
   const purchaseTime = event
     ? new Date(event.startsAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
-    : trip.departTime;
+    : trip?.departTime ?? '';
   const purchaseDate = event
     ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(event.startsAt))
-    : trip.departAt
+    : trip?.departAt
       ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'medium' }).format(new Date(trip.departAt))
       : 'Date du départ';
   const purchaseQuantity = event ? eventQuantity : selectedSeats.length;
@@ -180,7 +181,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                   trending_flat
                 </span>
                 <span className="font-headline text-[10px] text-[#216b43] font-bold">
-                  {eventCategory?.name || trip.serviceTitle || 'Trajet direct'}
+                  {eventCategory?.name || trip?.serviceTitle || 'Trajet direct'}
                 </span>
               </div>
 
@@ -377,7 +378,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
           <div className="flex flex-col gap-1.5 pt-1 font-body text-[12px]">
             <div className="flex justify-between items-center text-[#5a4136]">
-              <span>{event ? 'Billets événement' : `Tarif transporteur (${trip.carrier})`}</span>
+              <span>{event ? 'Billets événement' : `Tarif transporteur (${trip?.carrier ?? ''})`}</span>
               <span className="text-[#0b1c30] font-bold">
                 {formatXof(totalAmount)} FCFA
               </span>

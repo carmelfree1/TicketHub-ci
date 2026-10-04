@@ -13,7 +13,7 @@
     "preview": "corepack pnpm --filter @tickethub/frontend preview",
     "start": "corepack pnpm --filter @tickethub/backend start",
     "lint": "tsc --noEmit",
-    "test": "corepack pnpm --filter @tickethub/backend test",
+    "test": "corepack pnpm --filter @tickethub/backend test && corepack pnpm --filter @tickethub/frontend test",
     "test:integration": "corepack pnpm --filter @tickethub/backend test:integration",
     "test:e2e": "corepack pnpm --filter @tickethub/backend test:e2e",
     "db:generate": "corepack pnpm --filter @tickethub/backend db:generate",
