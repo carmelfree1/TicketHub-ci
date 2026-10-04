@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { after, before, describe, it } from 'node:test';
+import { TERMS_VERSION } from '@tickethub/shared';
 import { startE2eContext, type Session } from '../helpers/e2e-context.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -129,6 +130,8 @@ describe('company scoping, invitations, sale snapshots and settlements', { skip:
           fullName: 'Invité Test',
           phone,
           password: 'Test-only-password-482!',
+          acceptTerms: true,
+          termsVersion: TERMS_VERSION,
           ...(code ? { partnerInviteCode: code } : {}),
         }),
       });

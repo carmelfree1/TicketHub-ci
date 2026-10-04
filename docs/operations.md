@@ -44,3 +44,10 @@ What the gateway documents (checked on pay.genius.ci/doc): webhooks signed with 
 - **Company payouts.** Daily settlements are generated automatically for the previous UTC day. The transfer is made by a person; record it with `tsx scripts/settlements.ts list|generate|approve|paid <id> <transfer reference>|cancel <id>`. Lifecycle: `pending` (recomputed on each run) to `approved` to `paid`; a paid settlement is final, and the database refuses any other combination. Refunds issued after a settlement was approved are not netted automatically: adjust the next transfer by hand.
 - **Suspended companies.** Their departures and events disappear from the catalog and cannot be booked. Existing tickets keep working and are settled normally.
 
+## Pre-production notes
+
+- **Redis connection.** The API creates its queues while modules load and connects afterwards; `connectRedis()` now waits for the already started connection instead of connecting twice (that crashed every production start). `test/integration/redis.integration.test.ts` covers it and runs in CI against a Redis service (`TEST_REDIS_URL`).
+- **Failed messages.** The retry job now works through the whole backlog in batches (up to 500 per run) so old failures cannot hide newer messages.
+- **API rate limit.** `API_RATE_LIMIT_MAX` (default 600 per minute per address) is deliberately generous because many customers share one address behind a mobile carrier. nginx adds its own limits on login and the API.
+- **Legal identity and release builds.** See `docs/go-live.md`.
+

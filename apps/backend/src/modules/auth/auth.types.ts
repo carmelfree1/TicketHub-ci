@@ -12,6 +12,8 @@ export interface RegisterInput {
   phone: string;
   password: string;
   partnerInviteCode?: string;
+  acceptTerms: true;
+  termsVersion: string;
 }
 
 export interface LoginInput {

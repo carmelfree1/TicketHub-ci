@@ -1,4 +1,5 @@
 import { type AuthUser, type DigitalTicket, type TicketedEvent, type TripDeparture } from '@/types';
+import { TERMS_VERSION } from '@tickethub/shared';
 import { API_BASE_URL } from '@/lib/constants';
 
 export class ApiError extends Error {
@@ -168,7 +169,8 @@ export const api = {
   async register(input: { fullName: string; phone: string; password: string; partnerInviteCode?: string }): Promise<AuthUser> {
     const result = await request<{ user: AuthUser }>('/auth/register', {
       method: 'POST',
-      body: JSON.stringify(input),
+      // Creating an account is the moment the person accepts the terms shown next to the button.
+      body: JSON.stringify({ ...input, acceptTerms: true, termsVersion: TERMS_VERSION }),
     });
     return result.user;
   },

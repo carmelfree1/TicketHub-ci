@@ -49,6 +49,10 @@ Le baseline suppose les tables legacy (`users`, `sessions`, `bus_trips`, `events
 
 `pnpm db:generate` produit le client Prisma sous `apps/backend/src/generated`; l’accès aux moteurs Prisma est nécessaire à la première génération. `pnpm db:seed` ajoute de façon idempotente les trajets des 14 prochains jours et les événements de démonstration.
 
+## Mise en production
+
+Voir [`docs/go-live.md`](docs/go-live.md) : ce que seul le propriétaire peut fournir (domaine, identité légale, clés GeniusPay, SMS), les opérations du premier jour, le déploiement (`deploy/`) et ce qui a été vérifié ou non. Le build de production (`RELEASE_BUILD=1`) échoue tant que les mentions légales ne sont pas renseignées (`VITE_LEGAL_*`).
+
 ## Configuration
 
 | Variable | Usage |
@@ -66,6 +70,7 @@ Le baseline suppose les tables legacy (`users`, `sessions`, `bus_trips`, `events
 | `GENIUSPAY_API_BASE_URL` | Base de l’API GeniusPay. |
 | `DATA_ENCRYPTION_KEY` | 32 octets en hexadécimal (64 caractères). Chiffre les secrets TOTP ; obligatoire en production dès que la MFA est exigée. |
 | `MFA_REQUIRED_ROLES` | Rôles (séparés par des virgules) qui doivent activer la MFA avant d’accéder aux routes privilégiées. Défaut : `partner` en production, vide ailleurs. |
+| `API_RATE_LIMIT_MAX` | Requêtes par minute et par adresse IP pour toute l’API (600 par défaut ; plusieurs clients partagent souvent la même IP mobile). |
 | `AUTH_RATE_LIMIT_MAX`, `MFA_RATE_LIMIT_MAX`, `PAYMENT_RATE_LIMIT_MAX`, `RESERVATION_RATE_LIMIT_MAX`, `SCAN_RATE_LIMIT_MAX` | Plafonds de requêtes par fenêtre (12 / 10 / 10 / 20 / 120 par défaut). |
 | `PGSSL`, `PG_POOL_SIZE` | TLS et taille du pool PostgreSQL. |
 | `PLATFORM_COMMISSION_BPS` | Commission des règlements en points de base (0 par défaut). |

@@ -49,7 +49,7 @@ export const authService = {
   async register(input: RegisterInput, context: Context = {}): Promise<{ user: PublicUser; token: string }> {
     const phone = normalizePhone(input.phone);
     const passwordHash = await authRepository.hashPassword(input.password);
-    const account = { id: randomUUID(), fullName: input.fullName.trim(), phone, password: passwordHash };
+    const account = { id: randomUUID(), fullName: input.fullName.trim(), phone, password: passwordHash, termsVersion: input.termsVersion };
     // A code that is present but wrong is an error, never a silent downgrade to a traveler account.
     const invite = input.partnerInviteCode?.trim()
       ? await authRepository.createPartnerWithInvite(account, hashInviteCode(input.partnerInviteCode))

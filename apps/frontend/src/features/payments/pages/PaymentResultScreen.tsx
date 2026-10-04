@@ -31,7 +31,7 @@ export const PaymentResultScreen: React.FC<PaymentResultScreenProps> = ({ state,
       <h1 className="font-headline text-[21px] font-bold text-[#0b1c30]">{title}</h1>
       <p role="status" className="max-w-sm font-body text-[13px] text-[#5a4136] leading-relaxed">{message}</p>
       {(state === 'pending' || state === 'error') && (
-        <button type="button" onClick={onRetry} className="px-5 py-3 rounded-xl bg-[#ff6b00] text-white font-headline text-[13px] font-bold cursor-pointer">Vérifier à nouveau</button>
+        <button type="button" onClick={onRetry} className="px-5 py-3 rounded-xl bg-[#c2410c] text-white font-headline text-[13px] font-bold cursor-pointer">Vérifier à nouveau</button>
       )}
       <button type="button" onClick={onExplore} className="px-5 py-3 rounded-xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[13px] font-bold cursor-pointer">Retour à l’exploration</button>
       <p className="max-w-sm font-body text-[10px] text-[#5a4136]">Le billet n’est émis qu’après confirmation du paiement par le serveur.</p>

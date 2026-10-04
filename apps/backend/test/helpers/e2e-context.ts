@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHmac, randomInt } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
+import { TERMS_VERSION } from '@tickethub/shared';
 import { configureTestEnv } from './test-env.js';
 
 export interface Booking {
@@ -77,7 +78,7 @@ export async function startE2eContext(databaseUrl: string) {
     const password = 'Test-only-password-482!';
     const response = await api('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({ fullName, phone, password, ...extra }),
+      body: JSON.stringify({ fullName, phone, password, acceptTerms: true, termsVersion: TERMS_VERSION, ...extra }),
     });
     assert.equal(response.status, 201, await response.clone().text());
     const cookie = response.headers.get('set-cookie')?.split(';', 1)[0];

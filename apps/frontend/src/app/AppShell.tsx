@@ -5,6 +5,8 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { ProfileModal } from '@/components/forms/ProfileModal';
 import { StatusPanel } from '@/components/feedback/StatusPanel';
 import { AppStatusBanners } from '@/components/layout/AppStatusBanners';
+import { SiteFooter } from '@/components/layout/SiteFooter';
+import { usePageMeta } from './usePageMeta';
 import { paths, useCurrentScreen, useScreenNavigation } from './navigation';
 import { useBookingFlow } from './booking-flow';
 import { useSession } from './session';
@@ -15,6 +17,7 @@ export function AppShell() {
   const goToScreen = useScreenNavigation();
   const session = useSession();
   const { draft, reset } = useBookingFlow();
+  usePageMeta();
 
   return (
     <div className="min-h-screen bg-[#eef3ff] text-[#0b1c30]">
@@ -34,11 +37,12 @@ export function AppShell() {
           backScreen={draft.event ? 'event-selection' : 'seat-selection'}
         />
 
-        <main id="contenu" className="flex-1 w-full pt-16">
+        <main id="contenu" tabIndex={-1} className="flex-1 w-full pt-16 focus:outline-none">
           <AppStatusBanners />
           <Suspense fallback={<StatusPanel tone="loading" title="Chargement" />}>
             <Outlet />
           </Suspense>
+          <SiteFooter />
         </main>
 
         <BottomNav

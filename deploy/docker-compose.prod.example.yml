@@ -1,0 +1,85 @@
+# Example single-host production stack. Copy it, adapt it to your infrastructure, and keep secrets out of version control.
+#
+#   cp deploy/.env.production.example .env.production          # then fill in every value
+#   docker compose -f deploy/docker-compose.prod.example.yml --env-file .env.production build
+#   docker compose -f deploy/docker-compose.prod.example.yml --env-file .env.production run --rm api ./node_modules/.bin/prisma migrate deploy
+#   docker compose -f deploy/docker-compose.prod.example.yml --env-file .env.production up -d
+#
+# TLS must end in front of the web container (load balancer or reverse proxy). A managed PostgreSQL and Redis are
+# preferable to the containers below; if you use them, delete these two services and point DATABASE_URL/REDIS_URL at them.
+
+name: tickethub
+
+services:
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        VITE_SITE_URL: ${VITE_SITE_URL}
+        VITE_LEGAL_COMPANY_NAME: ${VITE_LEGAL_COMPANY_NAME}
+        VITE_LEGAL_FORM: ${VITE_LEGAL_FORM}
+        VITE_LEGAL_SHARE_CAPITAL: ${VITE_LEGAL_SHARE_CAPITAL:-}
+        VITE_LEGAL_REGISTRATION_NUMBER: ${VITE_LEGAL_REGISTRATION_NUMBER}
+        VITE_LEGAL_TAX_NUMBER: ${VITE_LEGAL_TAX_NUMBER:-}
+        VITE_LEGAL_ADDRESS: ${VITE_LEGAL_ADDRESS}
+        VITE_LEGAL_CONTACT_EMAIL: ${VITE_LEGAL_CONTACT_EMAIL}
+        VITE_LEGAL_CONTACT_PHONE: ${VITE_LEGAL_CONTACT_PHONE}
+        VITE_LEGAL_PUBLICATION_DIRECTOR: ${VITE_LEGAL_PUBLICATION_DIRECTOR}
+        VITE_LEGAL_HOST_NAME: ${VITE_LEGAL_HOST_NAME}
+        VITE_LEGAL_HOST_ADDRESS: ${VITE_LEGAL_HOST_ADDRESS}
+        VITE_LEGAL_HOSTING_COUNTRY: ${VITE_LEGAL_HOSTING_COUNTRY}
+        VITE_LEGAL_DATA_PROTECTION_EMAIL: ${VITE_LEGAL_DATA_PROTECTION_EMAIL:-}
+        VITE_LEGAL_ARTCI_REFERENCE: ${VITE_LEGAL_ARTCI_REFERENCE:-}
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:80"
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.api
+    env_file: ../.env.production
+    environment:
+      NODE_ENV: production
+      API_PORT: "3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:

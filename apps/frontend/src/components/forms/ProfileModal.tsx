@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router';
 import { type AppScreen, type AuthUser } from '@/types';
 import type { SecurityStatus } from '@/services/api';
 import { MfaSettings } from './MfaSettings';
@@ -40,6 +41,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [partnerInviteCode, setPartnerInviteCode] = useState('');
   const [challengeToken, setChallengeToken] = useState('');
   const [mfaCode, setMfaCode] = useState('');
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -182,13 +184,13 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 maxLength={16}
                 value={mfaCode}
                 onChange={(event) => setMfaCode(event.target.value)}
-                className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+                className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#c2410c]"
               />
             </label>
             {error && <p role="alert" className="p-2.5 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[12px]">{error}</p>}
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => { setChallengeToken(''); setMfaCode(''); setError(''); }} className="min-h-[46px] rounded-xl bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[13px] font-bold cursor-pointer">Retour</button>
-              <button disabled={isBusy || mfaCode.trim().length < 6} type="submit" className="min-h-[46px] rounded-xl bg-[#ff6b00] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
+              <button disabled={isBusy || mfaCode.trim().length < 6} type="submit" className="min-h-[46px] rounded-xl bg-[#c2410c] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
                 {isBusy ? 'Vérification…' : 'Vérifier'}
               </button>
             </div>
@@ -204,16 +206,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               {mode === 'register' && (
                 <label className="flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
                   Nom complet
-                  <input required minLength={2} maxLength={100} autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]" placeholder="Awa KOUASSI" />
+                  <input required minLength={2} maxLength={100} autoComplete="name" value={fullName} onChange={(event) => setFullName(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#c2410c]" placeholder="Awa KOUASSI" />
                 </label>
               )}
               <label className="flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
                 Téléphone ivoirien
-                <input required type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]" placeholder="07 00 00 00 00" />
+                <input required type="tel" autoComplete="tel" value={phone} onChange={(event) => setPhone(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#c2410c]" placeholder="07 00 00 00 00" />
               </label>
               <label className="flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
                 Mot de passe
-                <input required type="password" minLength={mode === 'register' ? 10 : 1} maxLength={128} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]" placeholder={mode === 'register' ? '10 caractères minimum' : 'Votre mot de passe'} />
+                <input required type="password" minLength={mode === 'register' ? 10 : 1} maxLength={128} autoComplete={mode === 'register' ? 'new-password' : 'current-password'} value={password} onChange={(event) => setPassword(event.target.value)} className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#c2410c]" placeholder={mode === 'register' ? '10 caractères minimum' : 'Votre mot de passe'} />
               </label>
               {mode === 'register' && (
                 <details className="rounded-xl bg-[#eff4ff] px-3 py-2 border border-[#dce9ff]">
@@ -224,11 +226,19 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                   </label>
                 </details>
               )}
+              {mode === 'register' && (
+                <label className="flex items-start gap-2 font-body text-[12px] leading-snug text-[#0b1c30]">
+                  <input type="checkbox" required checked={acceptedTerms} onChange={(event) => setAcceptedTerms(event.target.checked)} className="mt-0.5 h-5 w-5 flex-shrink-0 accent-[#ff6b00]" />
+                  <span>
+                    J’ai lu et j’accepte les <Link to="/conditions" onClick={onClose} className="font-bold text-[#a04100] underline">conditions d’utilisation</Link> et la{' '}
+                    <Link to="/confidentialite" onClick={onClose} className="font-bold text-[#a04100] underline">politique de confidentialité</Link>.
+                  </span>
+                </label>
+              )}
               {error && <p role="alert" className="p-2.5 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[12px]">{error}</p>}
-              <button disabled={isBusy} type="submit" className="w-full min-h-[46px] rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
+              <button disabled={isBusy || (mode === 'register' && !acceptedTerms)} type="submit" className="w-full min-h-[46px] rounded-xl bg-[#c2410c] hover:bg-[#9a3412] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
                 {isBusy ? 'Veuillez patienter…' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
               </button>
-              <p className="font-body text-[10px] text-center text-[#5a4136]">Vos données de connexion sont envoyées uniquement à l’API TicketHub.</p>
             </form>
           </>
         )}

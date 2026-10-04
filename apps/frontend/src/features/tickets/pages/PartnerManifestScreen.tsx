@@ -127,7 +127,7 @@ export const PartnerManifestScreen: React.FC = () => {
       <section className="bg-white rounded-3xl p-4 shadow-sm border border-[#dce9ff] flex flex-col gap-3">
         <div className="flex items-start justify-between gap-2">
           <div>
-            <h2 className="font-headline text-[18px] font-bold text-[#0b1c30]">Manifeste passagers</h2>
+            <h1 className="font-headline text-[18px] font-bold text-[#0b1c30]">Manifeste passagers</h1>
             <p className="font-body text-[11px] text-[#5a4136]">Données des billets payés enregistrées côté serveur</p>
           </div>
           <span className="px-2 py-1 rounded-md bg-[#a5f0be] text-[#00522e] font-headline text-[10px] font-bold">{boardedCount} contrôlé{boardedCount === 1 ? '' : 's'}</span>
@@ -142,18 +142,18 @@ export const PartnerManifestScreen: React.FC = () => {
 
       <section className="grid grid-cols-3 gap-2">
         <div className="bg-white p-3 rounded-2xl border border-[#dce9ff] text-center"><span className="block font-headline text-[9px] uppercase font-bold text-[#5a4136]">Billets payés</span><strong className="font-headline text-[18px] text-[#0b1c30]">{passengers.length}</strong></div>
-        <div className="bg-white p-3 rounded-2xl border border-[#dce9ff] text-center"><span className="block font-headline text-[9px] uppercase font-bold text-[#5a4136]">À contrôler</span><strong className="font-headline text-[18px] text-[#ff6b00]">{pendingCount}</strong></div>
+        <div className="bg-white p-3 rounded-2xl border border-[#dce9ff] text-center"><span className="block font-headline text-[9px] uppercase font-bold text-[#5a4136]">À contrôler</span><strong className="font-headline text-[18px] text-[#c2410c]">{pendingCount}</strong></div>
         <div className="bg-white p-3 rounded-2xl border border-[#dce9ff] text-center"><span className="block font-headline text-[9px] uppercase font-bold text-[#5a4136]">Total XOF</span><strong className="font-headline text-[14px] text-[#216b43]">{formatXof(grossAmount)}</strong></div>
       </section>
 
       <div className="relative">
         <span className="material-symbols-outlined absolute left-3 top-3 text-[#5a4136] text-[18px]" aria-hidden="true">search</span>
-        <input type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Nom, téléphone, siège ou code billet" className="w-full h-11 pl-9 pr-3 rounded-xl bg-white text-[#0b1c30] placeholder:text-[#5a4136]/70 font-body text-[12px] border border-[#dce9ff] outline-none focus:ring-1 focus:ring-[#ff6b00]" />
+        <input type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Nom, téléphone, siège ou code billet" className="w-full h-11 pl-9 pr-3 rounded-xl bg-white text-[#0b1c30] placeholder:text-[#5a4136]/70 font-body text-[12px] border border-[#dce9ff] outline-none focus:ring-1 focus:ring-[#c2410c]" />
       </div>
 
       <div className="flex items-center gap-2">
         {(['all', 'boarded', 'pending'] as const).map((value) => (
-          <button key={value} type="button" onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-md font-headline text-[11px] font-bold ${filter === value ? 'bg-[#ff6b00] text-white' : 'bg-white text-[#0b1c30] border border-[#dce9ff]'}`}>
+          <button key={value} type="button" onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-md font-headline text-[11px] font-bold ${filter === value ? 'bg-[#c2410c] text-white' : 'bg-white text-[#0b1c30] border border-[#dce9ff]'}`}>
             {value === 'all' ? 'Tous' : value === 'boarded' ? 'Contrôlés' : 'En attente'}
           </button>
         ))}
@@ -174,7 +174,7 @@ export const PartnerManifestScreen: React.FC = () => {
               <div className="min-w-0 flex-1">
                 <p className="font-headline text-[13px] font-bold text-[#0b1c30] truncate">{passenger.name}</p>
                 <p className="font-body text-[10px] text-[#5a4136] truncate">{passenger.phone} · {passenger.ticketCode}</p>
-                <p className={`font-headline text-[10px] font-bold ${boarded ? 'text-[#216b43]' : 'text-[#ff6b00]'}`}>{boarded ? `Contrôlé ${passenger.scanTime || ''}` : passenger.status === 'absent' ? 'Annulé' : 'En attente'}</p>
+                <p className={`font-headline text-[10px] font-bold ${boarded ? 'text-[#216b43]' : 'text-[#c2410c]'}`}>{boarded ? `Contrôlé ${passenger.scanTime || ''}` : passenger.status === 'absent' ? 'Annulé' : 'En attente'}</p>
               </div>
               {!boarded && passenger.status !== 'absent' && (
                 <button type="button" onClick={() => void handleValidate(record)} disabled={busyCode === record.ticketCode} className="shrink-0 px-2.5 py-2 rounded-xl bg-[#216b43] text-white font-headline text-[10px] font-bold disabled:opacity-50 cursor-pointer">{busyCode === record.ticketCode ? '…' : 'Valider'}</button>

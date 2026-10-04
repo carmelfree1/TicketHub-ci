@@ -151,7 +151,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
         <div className="flex items-center justify-between">
           <div>
             <p className="font-headline text-[10px] text-[#216b43] uppercase font-bold tracking-wider">Contrôle partenaire</p>
-            <h2 className="font-headline text-[19px] text-[#0b1c30] font-bold">Scanner les billets</h2>
+            <h1 className="font-headline text-[19px] text-[#0b1c30] font-bold">Scanner les billets</h1>
           </div>
           <span className="px-2.5 py-1 rounded-md bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[10px] font-bold">{sessionValidated} validé{sessionValidated === 1 ? '' : 's'} ici</span>
         </div>
@@ -177,7 +177,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
 
         <div className="flex gap-2">
           {!cameraActive ? (
-            <button type="button" onClick={() => { setScanMessage(null); setCameraActive(true); }} disabled={isSubmitting} className="flex-1 min-h-[46px] rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
+            <button type="button" onClick={() => { setScanMessage(null); setCameraActive(true); }} disabled={isSubmitting} className="flex-1 min-h-[46px] rounded-xl bg-[#c2410c] hover:bg-[#9a3412] text-white font-headline text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
               <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Démarrer la caméra
             </button>
           ) : (
@@ -192,7 +192,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
         <div className="p-3 bg-white rounded-2xl border border-[#dce9ff] flex flex-col gap-2">
           <label htmlFor="manual-ticket-code" className="font-headline text-[12px] font-bold text-[#0b1c30]">Saisie manuelle du code billet</label>
           <div className="flex gap-2">
-            <input id="manual-ticket-code" type="text" value={manualCode} onChange={(event) => setManualCode(event.target.value.toUpperCase())} placeholder="TKH-XXXXXXXX" autoCapitalize="characters" className="min-w-0 flex-1 h-11 px-3 rounded-xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[14px] tracking-wider focus:outline-none focus:ring-2 focus:ring-[#ff6b00] border border-[#dce9ff]" />
+            <input id="manual-ticket-code" type="text" value={manualCode} onChange={(event) => setManualCode(event.target.value.toUpperCase())} placeholder="TKH-XXXXXXXX" autoCapitalize="characters" className="min-w-0 flex-1 h-11 px-3 rounded-xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[14px] tracking-wider focus:outline-none focus:ring-2 focus:ring-[#c2410c] border border-[#dce9ff]" />
             <button type="button" onClick={() => void submitScan(manualCode, false)} disabled={!manualCode.trim() || isSubmitting} className="px-4 h-11 bg-[#0b1c30] text-white font-headline text-[12px] font-bold rounded-xl disabled:opacity-50 cursor-pointer">
               {isSubmitting ? 'Vérification…' : 'Vérifier'}
             </button>

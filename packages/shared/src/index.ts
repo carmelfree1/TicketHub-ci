@@ -11,3 +11,9 @@ export function normalizeCiPhone(value: string): string | null {
 export function formatXof(amount: number): string {
   return new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 }).format(amount);
 }
+
+/**
+ * Version of the terms of use and privacy policy shown to people when they create an account. Change it whenever either
+ * text changes in substance: the API refuses sign-ups that accepted another version, so nobody agrees to an old text.
+ */
+export const TERMS_VERSION = '2026-10-04';

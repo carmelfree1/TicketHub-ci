@@ -26,7 +26,7 @@ export const EventTicketSelectionScreen: React.FC<EventTicketSelectionScreenProp
         <img src={event.imageUrl} alt="" className="w-full h-40 object-cover" referrerPolicy="no-referrer" />
         <div className="p-4 flex flex-col gap-2">
           <span className="self-start px-2.5 py-1 rounded-md bg-[#ffdbcc] text-[#a04100] font-headline text-[10px] font-bold uppercase">{event.eventType === 'sport' ? 'Sport' : event.eventType === 'show' ? 'Spectacle' : 'Concert'}</span>
-          <h2 className="font-headline text-[20px] font-bold text-[#0b1c30] leading-tight">{event.title}</h2>
+          <h1 className="font-headline text-[20px] font-bold text-[#0b1c30] leading-tight">{event.title}</h1>
           <p className="font-body text-[12px] text-[#5a4136]">{event.description}</p>
           <div className="grid grid-cols-2 gap-2 mt-1">
             <div className="rounded-xl bg-[#eff4ff] p-2.5 border border-[#dce9ff]">
@@ -42,7 +42,7 @@ export const EventTicketSelectionScreen: React.FC<EventTicketSelectionScreenProp
       </section>
 
       <section className="flex flex-col gap-2">
-        <h3 className="font-headline text-[15px] font-bold text-[#0b1c30]">Choisissez votre catégorie</h3>
+        <h2 className="font-headline text-[15px] font-bold text-[#0b1c30]">Choisissez votre catégorie</h2>
         {event.categories.map((category) => {
           const isSelected = category.id === selected?.id;
           const soldOut = category.available <= 0;
@@ -58,7 +58,7 @@ export const EventTicketSelectionScreen: React.FC<EventTicketSelectionScreenProp
                 <span className="font-headline text-[14px] font-bold text-[#0b1c30]">{category.name}</span>
                 <span className="font-body text-[11px] text-[#5a4136]">{soldOut ? 'Épuisé' : `${category.available} places disponibles`}</span>
               </span>
-              <span className="font-headline text-[15px] font-bold text-[#ff6b00]">{formatXof(category.price)} FCFA</span>
+              <span className="font-headline text-[15px] font-bold text-[#c2410c]">{formatXof(category.price)} FCFA</span>
             </button>
           );
         })}
@@ -74,7 +74,7 @@ export const EventTicketSelectionScreen: React.FC<EventTicketSelectionScreenProp
           </div>
           <div className="text-right">
             <span className="block font-headline text-[10px] uppercase font-bold text-[#5a4136]">Total</span>
-            <span className="font-headline text-[18px] font-bold text-[#ff6b00]">{formatXof(total)} FCFA</span>
+            <span className="font-headline text-[18px] font-bold text-[#c2410c]">{formatXof(total)} FCFA</span>
           </div>
         </section>
       )}
@@ -82,7 +82,7 @@ export const EventTicketSelectionScreen: React.FC<EventTicketSelectionScreenProp
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-[#dce9ff] p-4 shadow-[0_-8px_30px_rgba(11,28,48,0.12)]">
         <div className="max-w-md mx-auto flex flex-col gap-2">
           {actionError && <p role="alert" className="p-2 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[11px]">{actionError}</p>}
-          <button type="button" onClick={() => { if (selected) onContinue(selected, quantity); }} disabled={isBooking || !selected || selected.available < quantity} className="w-full min-h-[50px] rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[14px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
+          <button type="button" onClick={() => { if (selected) onContinue(selected, quantity); }} disabled={isBooking || !selected || selected.available < quantity} className="w-full min-h-[50px] rounded-xl bg-[#c2410c] hover:bg-[#9a3412] text-white font-headline text-[14px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
             <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{isBooking ? 'progress_activity' : 'lock'}</span>
             {isBooking ? 'Réservation en cours…' : 'Continuer vers le paiement'}
           </button>

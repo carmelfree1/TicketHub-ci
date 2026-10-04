@@ -16,6 +16,7 @@ export const appConfig = {
   sessionTtlSeconds: env.SESSION_TTL_DAYS * 24 * 60 * 60,
   authRateLimit: { windowMs: 15 * 60 * 1000, limit: env.AUTH_RATE_LIMIT_MAX },
   rateLimits: {
+    api: env.API_RATE_LIMIT_MAX,
     mfa: env.MFA_RATE_LIMIT_MAX,
     payment: env.PAYMENT_RATE_LIMIT_MAX,
     reservation: env.RESERVATION_RATE_LIMIT_MAX,

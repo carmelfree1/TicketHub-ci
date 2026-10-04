@@ -11,9 +11,9 @@ interface MfaSettingsProps {
 type Step = 'idle' | 'enrolling' | 'done' | 'disabling';
 
 const inputClass =
-  'h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]';
+  'h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#c2410c]';
 const primaryButton =
-  'min-h-[44px] px-4 rounded-xl bg-[#ff6b00] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60';
+  'min-h-[44px] px-4 rounded-xl bg-[#c2410c] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60';
 const secondaryButton =
   'min-h-[44px] px-4 rounded-xl bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60';
 

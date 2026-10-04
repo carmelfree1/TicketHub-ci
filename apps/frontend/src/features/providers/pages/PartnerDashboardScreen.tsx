@@ -100,7 +100,7 @@ export const PartnerDashboardScreen: React.FC<PartnerDashboardScreenProps> = ({ 
                   type="button"
                   aria-pressed={period === item.id}
                   onClick={() => setPeriod(item.id)}
-                  className={`min-h-[36px] rounded-md px-3 font-headline text-[12px] font-bold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] ${
+                  className={`min-h-[36px] rounded-md px-3 font-headline text-[12px] font-bold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] ${
                     period === item.id ? 'bg-white text-[#0b1c30] shadow-sm' : 'text-[#5a4136]'
                   }`}
                 >
@@ -131,7 +131,7 @@ export const PartnerDashboardScreen: React.FC<PartnerDashboardScreenProps> = ({ 
               type="button"
               onClick={() => onNavigate(action.screen)}
               disabled={!linked}
-              className="flex h-full w-full items-start gap-3 rounded-xl border border-[#e6e9f2] bg-white p-4 text-left hover:border-[#c9d7ff] hover:bg-[#f8faff] disabled:opacity-50 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00]"
+              className="flex h-full w-full items-start gap-3 rounded-xl border border-[#e6e9f2] bg-white p-4 text-left hover:border-[#c9d7ff] hover:bg-[#f8faff] disabled:opacity-50 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c]"
             >
               <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg bg-[#0b1c30] text-white" aria-hidden="true">
                 <span className="material-symbols-outlined text-[22px]" aria-hidden="true">{action.icon}</span>

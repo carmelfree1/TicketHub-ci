@@ -23,6 +23,8 @@
   "include": [
     "apps/frontend/src",
     "apps/frontend/vite.config.ts",
+    "apps/frontend/build",
+    "apps/frontend/test",
     "apps/backend/src",
     "apps/backend/test",
     "apps/backend/scripts",

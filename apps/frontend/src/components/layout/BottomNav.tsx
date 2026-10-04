@@ -49,14 +49,14 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, userRole, o
                 type="button"
                 onClick={() => (item.onSelect ? item.onSelect() : item.screen && onNavigate(item.screen))}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex min-h-[44px] w-full max-w-[96px] flex-col items-center justify-center gap-0.5 rounded-lg font-body text-[11px] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] ${
+                className={`relative flex min-h-[44px] w-full max-w-[96px] flex-col items-center justify-center gap-0.5 rounded-lg font-body text-[11px] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] ${
                   active ? 'font-bold text-[#a04100]' : 'text-[#4a5568] hover:text-[#0b1c30]'
                 }`}
               >
                 <span className="relative">
                   <span className={`material-symbols-outlined text-[24px] ${active ? 'fill' : ''}`} aria-hidden="true">{item.icon}</span>
                   {item.badge ? (
-                    <span className="absolute -right-2.5 -top-1 min-w-[18px] rounded-md bg-[#ff6b00] px-1 font-headline text-[10px] font-bold leading-[18px] text-white">
+                    <span className="absolute -right-2.5 -top-1 min-w-[18px] rounded-md bg-[#c2410c] px-1 font-headline text-[10px] font-bold leading-[18px] text-white">
                       <span aria-hidden="true">{item.badge}</span>
                       <span className="sr-only">{item.badge} billets actifs</span>
                     </span>

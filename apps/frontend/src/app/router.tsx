@@ -16,6 +16,9 @@ const routes: RouteObject[] = [
       { path: 'evenements/:eventId', lazy: () => import('@/routes/EventRoute') },
       { path: 'paiement', lazy: () => import('@/routes/PaymentRoute') },
       { path: 'paiement/retour', lazy: () => import('@/routes/PaymentReturnRoute') },
+      { path: 'conditions', lazy: () => import('@/legal/TermsPage') },
+      { path: 'confidentialite', lazy: () => import('@/legal/PrivacyPage') },
+      { path: 'mentions-legales', lazy: () => import('@/legal/LegalNoticePage') },
       { path: 'billets', lazy: () => import('@/routes/WalletRoute') },
       { path: 'billets/:ticketCode', lazy: () => import('@/routes/TicketRoute') },
       {

@@ -26,6 +26,7 @@ const envSchema = z.object({
   PLATFORM_COMMISSION_BPS: z.coerce.number().int().min(0).max(10_000).default(0),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
   MFA_REQUIRED_ROLES: z.string().optional(),
+  API_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(600),
   AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(12),
   MFA_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
   PAYMENT_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
@@ -41,6 +42,24 @@ const envSchema = z.object({
     if (!value.APP_URL.startsWith('https://') || !value.WEB_ORIGIN.startsWith('https://')) {
       ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'APP_URL et WEB_ORIGIN doivent utiliser HTTPS en production.' });
     }
+    // Values copied from .env.example or from a sandbox must never reach production.
+    const placeholder = /development-only|change-this|changeme|example|password/i;
+    for (const name of ['JWT_SECRET', 'TICKET_SIGNING_SECRET', 'GENIUSPAY_WEBHOOK_SECRET'] as const) {
+      if (value[name] && placeholder.test(value[name]!)) {
+        ctx.addIssue({ code: 'custom', path: [name], message: `${name} ressemble à une valeur d’exemple : générez un secret aléatoire.` });
+      }
+    }
+    if (value.JWT_SECRET === value.TICKET_SIGNING_SECRET) {
+      ctx.addIssue({ code: 'custom', path: ['TICKET_SIGNING_SECRET'], message: 'TICKET_SIGNING_SECRET doit être différent de JWT_SECRET.' });
+    }
+    for (const name of ['GENIUSPAY_API_KEY', 'GENIUSPAY_API_SECRET'] as const) {
+      if (value[name] && /sandbox|mock/i.test(value[name]!)) {
+        ctx.addIssue({ code: 'custom', path: [name], message: `${name} semble être une clé de test : utilisez les clés de production.` });
+      }
+    }
+    if (/\/\/tickethub:tickethub@/.test(value.DATABASE_URL)) {
+      ctx.addIssue({ code: 'custom', path: ['DATABASE_URL'], message: 'DATABASE_URL utilise les identifiants de développement.' });
+    }
   }
   const mfaRoles = (value.MFA_REQUIRED_ROLES ?? (value.NODE_ENV === 'production' ? 'partner' : '')).split(',').map((role) => role.trim()).filter(Boolean);
   if (mfaRoles.length > 0 && value.NODE_ENV === 'production' && !value.DATA_ENCRYPTION_KEY) {
@@ -51,5 +70,10 @@ const envSchema = z.object({
   }
 });
 
-export const env = envSchema.parse(process.env);
+/** Validates a set of variables. Exported so the production rules can be tested without touching process.env. */
+export function parseEnv(source: Record<string, string | undefined>) {
+  return envSchema.parse(source);
+}
+
+export const env = parseEnv(process.env);
 export type AppEnv = typeof env;

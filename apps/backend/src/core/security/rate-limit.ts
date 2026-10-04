@@ -36,7 +36,8 @@ export const mfaRateLimit = limiter({
 
 export const apiRateLimit = limiter({
   windowMs: 60_000,
-  limit: 300,
+  // Many customers share one address behind a mobile carrier, so this budget is per address and deliberately generous.
+  limit: appConfig.rateLimits.api,
   code: 'RATE_LIMIT',
   message: 'Trop de requêtes. Réessayez dans un instant.',
 });

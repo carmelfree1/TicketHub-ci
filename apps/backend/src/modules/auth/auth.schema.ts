@@ -1,10 +1,13 @@
 import { z } from 'zod';
+import { TERMS_VERSION } from '@tickethub/shared';
 
 export const registerSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
   phone: z.string().trim().min(8).max(24),
   password: z.string().min(10).max(128),
   partnerInviteCode: z.string().trim().max(120).optional(),
+  acceptTerms: z.literal(true, { error: 'Vous devez accepter les conditions d’utilisation et la politique de confidentialité.' }),
+  termsVersion: z.literal(TERMS_VERSION, { error: 'Les conditions ont changé. Rechargez la page puis réessayez.' }),
 });
 
 export const loginSchema = z.object({

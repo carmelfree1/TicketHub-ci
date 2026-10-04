@@ -131,7 +131,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
               type="button"
               aria-pressed={active}
               onClick={() => setCategory(item.id)}
-              className={`flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-lg border px-4 font-headline text-[13px] font-bold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] focus-visible:ring-offset-2 ${
+              className={`flex min-h-[44px] flex-shrink-0 items-center gap-2 rounded-lg border px-4 font-headline text-[13px] font-bold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2 ${
                 active ? 'border-[#0b1c30] bg-[#0b1c30] text-white' : 'border-[#dce9ff] bg-white text-[#0b1c30] hover:bg-[#eff4ff]'
               }`}
             >
@@ -153,7 +153,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
               className="grid gap-3 lg:grid-cols-[1fr_auto_1fr_220px_auto] lg:items-end"
             >
               <label className={fieldBoxClass}>
-                <span className="material-symbols-outlined text-[20px] text-[#ff6b00]" aria-hidden="true">trip_origin</span>
+                <span className="material-symbols-outlined text-[20px] text-[#c2410c]" aria-hidden="true">trip_origin</span>
                 <span className="min-w-0 flex-1">
                   <span className={fieldLabelClass}>Départ</span>
                   <input value={departCity} onChange={(event) => setDepartCity(event.target.value)} required autoComplete="off" className={fieldClass} placeholder="Ville de départ" />
@@ -164,7 +164,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
                 type="button"
                 onClick={swapCities}
                 aria-label="Inverser le départ et la destination"
-                className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-[#dce9ff] bg-white text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00]"
+                className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-[#dce9ff] bg-white text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c]"
               >
                 <span className="material-symbols-outlined text-[20px]" aria-hidden="true">swap_horiz</span>
               </button>
@@ -178,7 +178,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
               </label>
 
               <label className={fieldBoxClass}>
-                <span className="material-symbols-outlined text-[20px] text-[#ff6b00]" aria-hidden="true">calendar_month</span>
+                <span className="material-symbols-outlined text-[20px] text-[#c2410c]" aria-hidden="true">calendar_month</span>
                 <span className="min-w-0 flex-1">
                   <span className={fieldLabelClass}>Date</span>
                   <input type="date" value={departureDate} min={todayPlusDays(0)} onChange={(event) => setDepartureDate(event.target.value)} required className={fieldClass} />
@@ -188,7 +188,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
               <button
                 type="submit"
                 disabled={searching}
-                className="flex min-h-[52px] items-center justify-center gap-2 rounded-lg bg-[#ff6b00] px-6 font-headline text-[14px] font-bold text-white hover:bg-[#e65f00] disabled:opacity-60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] focus-visible:ring-offset-2"
+                className="flex min-h-[52px] items-center justify-center gap-2 rounded-lg bg-[#c2410c] px-6 font-headline text-[14px] font-bold text-white hover:bg-[#9a3412] disabled:opacity-60 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2"
               >
                 <span className="material-symbols-outlined text-[20px]" aria-hidden="true">search</span>
                 {searching ? 'Recherche…' : 'Rechercher'}
@@ -203,7 +203,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
                   type="button"
                   aria-pressed={destCity.toLowerCase() === city.toLowerCase()}
                   onClick={() => setDestCity(city)}
-                  className={`min-h-[36px] rounded-md border px-3 font-body text-[12px] font-semibold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] ${
+                  className={`min-h-[36px] rounded-md border px-3 font-body text-[12px] font-semibold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] ${
                     destCity.toLowerCase() === city.toLowerCase() ? 'border-[#ff6b00] bg-[#fff1e8] text-[#a04100]' : 'border-[#dce9ff] bg-white text-[#0b1c30] hover:bg-[#eff4ff]'
                   }`}
                 >
@@ -283,7 +283,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
                       type="button"
                       onClick={() => onSelectTrip(trip)}
                       disabled={trip.availableSeats === 0}
-                      className="min-h-[44px] rounded-lg bg-[#ff6b00] px-4 font-headline text-[13px] font-bold text-white hover:bg-[#e65f00] disabled:bg-[#c9b8ad] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] focus-visible:ring-offset-2"
+                      className="min-h-[44px] rounded-lg bg-[#c2410c] px-4 font-headline text-[13px] font-bold text-white hover:bg-[#9a3412] disabled:bg-[#c9b8ad] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2"
                     >
                       {trip.availableSeats === 0 ? 'Complet' : 'Choisir les sièges'}
                     </button>
@@ -296,7 +296,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
               <button
                 type="button"
                 onClick={() => setTripLimit((limit) => limit + PAGE_SIZE)}
-                className="mx-auto min-h-[44px] rounded-lg border border-[#dce9ff] bg-white px-5 font-headline text-[13px] font-bold text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00]"
+                className="mx-auto min-h-[44px] rounded-lg border border-[#dce9ff] bg-white px-5 font-headline text-[13px] font-bold text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c]"
               >
                 Afficher plus de départs ({trips.length - tripLimit} restants)
               </button>
@@ -358,7 +358,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({ onSelectTrip, on
                   <button
                     type="button"
                     onClick={() => onSelectEvent(event)}
-                    className="min-h-[44px] rounded-lg bg-[#ff6b00] px-4 font-headline text-[13px] font-bold text-white hover:bg-[#e65f00] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] focus-visible:ring-offset-2"
+                    className="min-h-[44px] rounded-lg bg-[#c2410c] px-4 font-headline text-[13px] font-bold text-white hover:bg-[#9a3412] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2"
                   >
                     Choisir un billet
                   </button>

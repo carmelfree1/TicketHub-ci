@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { after, before, describe, it } from 'node:test';
+import { TERMS_VERSION } from '@tickethub/shared';
 import { startE2eContext, type Session } from '../helpers/e2e-context.js';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -42,6 +43,30 @@ describe('authentication hardening, MFA, audit trail', { skip: !testDatabaseUrl,
     const { backupCodes } = (await json(enable)).data as { backupCodes: string[] };
     return { secret, backupCodes };
   }
+
+  describe('consent at sign-up', () => {
+    const attempt = (extra: Record<string, unknown>, phone = `0${String(Math.floor(Math.random() * 1_000_000_000)).padStart(9, '0')}`) =>
+      ctx.api('/api/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ fullName: 'Consentement Test', phone, password: 'Test-only-password-482!', ...extra }),
+      }).then((response) => ({ response, phone }));
+
+    it('refuses an account created without accepting the terms, or with an outdated version', async () => {
+      for (const extra of [{}, { acceptTerms: false, termsVersion: TERMS_VERSION }, { acceptTerms: true }, { acceptTerms: true, termsVersion: '1999-01-01' }]) {
+        const { response, phone } = await attempt(extra);
+        assert.equal(response.status, 400, JSON.stringify(extra));
+        assert.equal(await ctx.prisma.user.findUnique({ where: { phone: `+225${phone}` } }), null, 'no account is created');
+      }
+    });
+
+    it('records when and which version was accepted', async () => {
+      const { response, phone } = await attempt({ acceptTerms: true, termsVersion: TERMS_VERSION });
+      assert.equal(response.status, 201);
+      const user = await ctx.prisma.user.findUniqueOrThrow({ where: { phone: `+225${phone}` } });
+      assert.equal(user.termsVersion, TERMS_VERSION);
+      assert.ok(user.termsAcceptedAt && Date.now() - user.termsAcceptedAt.getTime() < 60_000);
+    });
+  });
 
   describe('response headers', () => {
     it('sends a strict CSP, no-store and no framing on API responses', async () => {

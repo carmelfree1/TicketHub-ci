@@ -1,0 +1,37 @@
+# API image. Build from the repository root:  docker build -f deploy/Dockerfile.api -t tickethub-api .
+FROM node:22-slim AS base
+ENV PNPM_HOME=/pnpm CI=true
+ENV PATH=$PNPM_HOME:$PATH
+RUN corepack enable
+WORKDIR /app
+
+FROM base AS deps
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/backend/package.json apps/backend/
+COPY packages/shared/package.json packages/shared/
+COPY packages/types/package.json packages/types/
+# Only what the API needs; the frontend and its toolchain stay out of this image.
+RUN pnpm install --frozen-lockfile --filter @tickethub/backend...
+
+FROM deps AS build
+COPY packages packages
+COPY apps/backend apps/backend
+COPY tsconfig.json ./
+# Generating the client reads the schema only; Prisma's config insists on a DATABASE_URL, so a placeholder is given here.
+# The real value is supplied at run time and never baked into the image.
+RUN DATABASE_URL=postgresql://build:build@localhost:5432/build pnpm --filter @tickethub/backend db:generate
+
+FROM node:22-slim AS runtime
+ENV NODE_ENV=production
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates && rm -rf /var/lib/apt/lists/*
+WORKDIR /app
+COPY --from=build /app /app
+RUN chown -R node:node /app
+USER node
+WORKDIR /app/apps/backend
+EXPOSE 3001
+HEALTHCHECK --interval=15s --timeout=5s --start-period=30s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:3001/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# Applying migrations is a separate, deliberate step:  docker compose run --rm api ./node_modules/.bin/prisma migrate deploy
+# Node is started directly: package managers would try to download themselves at run time.
+CMD ["./node_modules/.bin/tsx", "src/server.ts"]

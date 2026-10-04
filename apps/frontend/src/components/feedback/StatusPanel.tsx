@@ -39,6 +39,6 @@ export function StatusPanel({ tone, title, description, icon, actions }: StatusP
 }
 
 export const actionButtonClass =
-  'inline-flex min-h-[44px] items-center justify-center px-4 rounded-xl font-headline text-[13px] font-bold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00] focus-visible:ring-offset-2';
-export const primaryActionClass = `${actionButtonClass} bg-[#ff6b00] text-white hover:bg-[#e65f00]`;
+  'inline-flex min-h-[44px] items-center justify-center px-4 rounded-xl font-headline text-[13px] font-bold cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#c2410c] focus-visible:ring-offset-2';
+export const primaryActionClass = `${actionButtonClass} bg-[#c2410c] text-white hover:bg-[#9a3412]`;
 export const secondaryActionClass = `${actionButtonClass} bg-white border border-[#dce9ff] text-[#0b1c30] hover:bg-[#eff4ff]`;

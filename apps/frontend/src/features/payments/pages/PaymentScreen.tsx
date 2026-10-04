@@ -124,7 +124,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         <div className="flex items-center gap-1.5 min-w-0">
           <span
             className={`material-symbols-outlined text-[20px] animate-pulse flex-shrink-0 ${
-              remainingSeconds < 120 ? 'text-[#ba1a1a]' : 'text-[#ff6b00]'
+              remainingSeconds < 120 ? 'text-[#ba1a1a]' : 'text-[#c2410c]'
             }`}
           >
             timer
@@ -137,7 +137,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <span className="font-body text-[11px] text-[#5a4136] font-medium">Expire dans</span>
           <span
             className={`font-headline text-[13px] font-bold leading-none tabular-nums ${
-              remainingSeconds < 120 ? 'text-[#ba1a1a]' : 'text-[#ff6b00]'
+              remainingSeconds < 120 ? 'text-[#ba1a1a]' : 'text-[#c2410c]'
             }`}
           >
             {formatTime(remainingSeconds)}
@@ -175,7 +175,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               </div>
 
               <div className="flex flex-col items-center px-2">
-                <span className="material-symbols-outlined text-[#ff6b00] text-[20px]" aria-hidden="true">
+                <span className="material-symbols-outlined text-[#c2410c] text-[20px]" aria-hidden="true">
                   trending_flat
                 </span>
                 <span className="font-headline text-[10px] text-[#216b43] font-bold">
@@ -237,10 +237,10 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               Total à régler
             </span>
             <div className="flex items-baseline gap-1">
-              <span className="font-headline text-[22px] text-[#ff6b00] font-bold">
+              <span className="font-headline text-[22px] text-[#c2410c] font-bold">
                 {formatXof(totalAmount)}
               </span>
-              <span className="font-headline text-[12px] text-[#ff6b00] font-bold">
+              <span className="font-headline text-[12px] text-[#c2410c] font-bold">
                 FCFA
               </span>
             </div>
@@ -250,7 +250,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         {/* 3. GeniusPay Trust Badge */}
         <div className="w-full bg-white rounded-2xl p-3 shadow-xs border border-[#e2bfb0]/30 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-9 h-9 rounded-xl bg-[#eff4ff] border border-[#dce9ff] flex items-center justify-center flex-shrink-0 text-[#ff6b00]">
+            <div className="w-9 h-9 rounded-xl bg-[#eff4ff] border border-[#dce9ff] flex items-center justify-center flex-shrink-0 text-[#c2410c]">
               <span className="material-symbols-outlined text-[20px] fill" aria-hidden="true">verified_user</span>
             </div>
             <div className="flex flex-col min-w-0">
@@ -404,7 +404,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 Les frais éventuels seront indiqués par GeniusPay avant paiement
               </span>
             </div>
-            <span className="font-headline text-[18px] text-[#ff6b00] font-bold">
+            <span className="font-headline text-[18px] text-[#c2410c] font-bold">
               {formatXof(totalAmount)} FCFA
             </span>
           </div>
@@ -427,7 +427,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             type="button"
             onClick={handleStartPayment}
             disabled={isProcessing || remainingSeconds <= 0}
-            className="w-full h-14 bg-[#ff6b00] hover:bg-[#e65f00] active:scale-[0.98] transition-transform rounded-2xl flex items-center justify-between px-5 shadow-lg shadow-[#ff6b00]/25 text-white font-headline text-[15px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full h-14 bg-[#c2410c] hover:bg-[#9a3412] active:scale-[0.98] transition-transform rounded-2xl flex items-center justify-between px-5 shadow-lg shadow-[#ff6b00]/25 text-white font-headline text-[15px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-[22px]" aria-hidden="true">bolt</span>

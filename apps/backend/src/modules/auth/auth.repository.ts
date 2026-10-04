@@ -10,7 +10,7 @@ export const authRepository = {
     return db.user.findUnique({ where: { phone } });
   },
 
-  createUser(input: { id: string; fullName: string; phone: string; password: string; role: UserRole }) {
+  createUser(input: { id: string; fullName: string; phone: string; password: string; role: UserRole; termsVersion: string }) {
     return db.user.create({
       data: {
         id: input.id,
@@ -18,6 +18,8 @@ export const authRepository = {
         phone: input.phone,
         passwordHash: input.password,
         role: input.role,
+        termsAcceptedAt: new Date(),
+        termsVersion: input.termsVersion,
       },
       select: { id: true, fullName: true, phone: true, role: true, createdAt: true },
     });
@@ -27,7 +29,7 @@ export const authRepository = {
    * Creates a partner account and links it to the company that issued the invitation, atomically: the invitation
    * is consumed in the same transaction, so two concurrent sign-ups can never share one code.
    */
-  createPartnerWithInvite(input: { id: string; fullName: string; phone: string; password: string }, codeHash: string) {
+  createPartnerWithInvite(input: { id: string; fullName: string; phone: string; password: string; termsVersion: string }, codeHash: string) {
     return transaction(async (tx) => {
       const now = new Date();
       const invite = await tx.providerInvite.findUnique({ where: { codeHash }, include: { provider: true } });
@@ -36,7 +38,7 @@ export const authRepository = {
       const claimed = await tx.providerInvite.updateMany({ where: { id: invite.id, usedAt: null }, data: { usedAt: now, usedBy: input.id } });
       if (claimed.count !== 1) throw invalid();
       const user = await tx.user.create({
-        data: { id: input.id, fullName: input.fullName, phone: input.phone, passwordHash: input.password, role: 'partner' },
+        data: { id: input.id, fullName: input.fullName, phone: input.phone, passwordHash: input.password, role: 'partner', termsAcceptedAt: now, termsVersion: input.termsVersion },
         select: { id: true, fullName: true, phone: true, role: true, createdAt: true },
       });
       await tx.providerMember.create({ data: { providerId: invite.providerId, userId: user.id, role: invite.role } });

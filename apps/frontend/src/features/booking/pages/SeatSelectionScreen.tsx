@@ -83,7 +83,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
           type="button"
           onClick={() => toggleSeat(seatNum)}
           aria-label={`Siège ${seatNum} sélectionné`}
-          className="h-11 rounded-lg bg-[#ff6b00] text-white font-headline text-[13px] font-bold shadow-md ring-2 ring-[#ff6b00]/40 flex flex-col items-center justify-center transition-all scale-105 cursor-pointer"
+          className="h-11 rounded-lg bg-[#c2410c] text-white font-headline text-[13px] font-bold shadow-md ring-2 ring-[#ff6b00]/40 flex flex-col items-center justify-center transition-all scale-105 cursor-pointer"
         >
           <span className="leading-none">{String(seatNum).padStart(2, '0')}</span>
           <span className="material-symbols-outlined text-[13px] font-bold" aria-hidden="true">check</span>
@@ -129,7 +129,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
                 {trip.carrier}
               </span>
             </div>
-            <span className="font-headline text-[17px] text-[#ff6b00] font-bold">
+            <span className="font-headline text-[17px] text-[#c2410c] font-bold">
               {formatXof(trip.price)} FCFA
             </span>
           </div>
@@ -149,7 +149,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
               <div className="w-full flex items-center gap-1 my-1">
                 <div className="w-2 h-2 rounded-full bg-[#ff6b00]"></div>
                 <div className="h-0.5 flex-1 bg-[#dce9ff]"></div>
-                <span className="material-symbols-outlined text-[#ff6b00] text-[15px]" aria-hidden="true">
+                <span className="material-symbols-outlined text-[#c2410c] text-[15px]" aria-hidden="true">
                   directions_bus
                 </span>
                 <div className="h-0.5 flex-1 bg-[#dce9ff]"></div>
@@ -184,7 +184,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
               <span className="font-body text-[12px] text-[#0b1c30]">Disponible</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md bg-[#ff6b00] text-white shadow-xs flex items-center justify-center">
+              <div className="w-5 h-5 rounded-md bg-[#c2410c] text-white shadow-xs flex items-center justify-center">
                 <span className="material-symbols-outlined text-[13px] font-bold" aria-hidden="true">check</span>
               </div>
               <span className="font-body text-[12px] text-[#0b1c30] font-bold">Votre choix</span>
@@ -209,7 +209,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
               <span className="font-headline text-[11px] font-bold">Porte d'accès</span>
             </div>
             <div className="flex items-center gap-1.5 text-[#0b1c30] bg-white px-2.5 py-1 rounded-lg shadow-xs border border-[#dce9ff]">
-              <span className="material-symbols-outlined text-[18px] text-[#ff6b00]" aria-hidden="true">sports_score</span>
+              <span className="material-symbols-outlined text-[18px] text-[#c2410c]" aria-hidden="true">sports_score</span>
               <span className="font-headline text-[11px] font-bold">Chauffeur</span>
             </div>
           </div>
@@ -290,7 +290,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="font-headline text-[18px] text-[#ff6b00] font-bold">
+              <span className="font-headline text-[18px] text-[#c2410c] font-bold">
                 {formatXof(totalPrice)} FCFA
               </span>
             </div>
@@ -301,7 +301,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
             type="button"
             disabled={isBooking || selectedSeats.length === 0 || availabilitySource !== 'server'}
             onClick={() => onContinueToPayment(selectedSeats, totalPrice)}
-            className="w-full min-h-[50px] bg-[#ff6b00] hover:bg-[#e65f00] hover:opacity-95 active:scale-[0.98] transition-all text-white font-headline text-[15px] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            className="w-full min-h-[50px] bg-[#c2410c] hover:bg-[#9a3412] hover:opacity-95 active:scale-[0.98] transition-all text-white font-headline text-[15px] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
             <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{isBooking ? 'progress_activity' : 'lock'}</span>
             <span>{isBooking ? 'Verrouillage des sièges…' : 'Continuer vers le paiement'}</span>

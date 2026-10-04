@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { createHmac, randomInt } from 'node:crypto';
 import { createServer, type Server } from 'node:http';
 import test from 'node:test';
+import { TERMS_VERSION } from '@tickethub/shared';
 
 const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 
@@ -64,6 +65,8 @@ test('traveler can book and pay, then a partner can consume the issued ticket on
         fullName: 'Voyageur E2E',
         phone: `0${String(randomInt(0, 1_000_000_000)).padStart(9, '0')}`,
         password: 'Test-only-password-482!',
+        acceptTerms: true,
+        termsVersion: TERMS_VERSION,
       }),
     });
     assert.equal(travelerRegistration.status, 201, await travelerRegistration.clone().text());
@@ -143,6 +146,8 @@ test('traveler can book and pay, then a partner can consume the issued ticket on
         phone: `0${String(randomInt(0, 1_000_000_000)).padStart(9, '0')}`,
         password: 'Test-only-password-482!',
         partnerInviteCode: invite.code,
+        acceptTerms: true,
+        termsVersion: TERMS_VERSION,
       }),
     });
     assert.equal(partnerRegistration.status, 201, await partnerRegistration.clone().text());

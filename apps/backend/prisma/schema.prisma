@@ -17,6 +17,8 @@ model User {
   mfaSecret        String?   @map("mfa_secret") @db.Text
   mfaEnabledAt     DateTime? @map("mfa_enabled_at") @db.Timestamptz(6)
   mfaLastStep      BigInt?   @map("mfa_last_step")
+  termsAcceptedAt  DateTime? @map("terms_accepted_at") @db.Timestamptz(6)
+  termsVersion     String?   @map("terms_version") @db.VarChar(20)
   failedLoginCount Int       @default(0) @map("failed_login_count")
   lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(6)
   mfaBackupCodes   MfaBackupCode[]

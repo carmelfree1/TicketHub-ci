@@ -2,12 +2,14 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+import { legalGuardPlugin } from './build/legal-guard';
+import { materialIconsPlugin } from './build/material-icons';
+import { seoPlugin } from './build/seo';
 
 const projectRoot = fileURLToPath(new URL('.', import.meta.url));
 
-const previewHostAllowlist = ['.e2b.app', 'localhost'];
 const apiProxy = {
   '/api': {
     target: 'http://127.0.0.1:3001',
@@ -15,10 +17,14 @@ const apiProxy = {
   },
 };
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const env = { ...loadEnv(mode, projectRoot, ''), ...process.env };
   return {
     plugins: [
       react(),
+      materialIconsPlugin(path.resolve(projectRoot, 'src')),
+      legalGuardPlugin(env),
+      seoPlugin(env),
       tailwindcss(),
       VitePWA({
         // A new version waits for the person's consent (see AppStatusBanners) so it cannot interrupt a payment.
@@ -27,7 +33,9 @@ export default defineConfig(() => {
         manifest: false,
         injectRegister: false,
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest}'],
+          globPatterns: ['**/*.{js,css,html,ico,png,svg,webmanifest,woff2}'],
+          // Vietnamese glyphs are never needed for French; do not make every phone download them.
+          globIgnores: ['**/*vietnamese*'],
           navigateFallback: '/index.html',
           // API calls, the payment webhook and robots must never be answered by the app shell.
           navigateFallbackDenylist: [/^\/api\//, /^\/robots\.txt$/],
@@ -49,19 +57,16 @@ export default defineConfig(() => {
         '@': path.resolve(projectRoot, 'src'),
       },
     },
+    build: {
+      // No data: URIs: the production CSP does not allow them, and small files cache better as separate assets.
+      assetsInlineLimit: 0,
+    },
     server: {
       host: '0.0.0.0',
-      allowedHosts: previewHostAllowlist,
       proxy: apiProxy,
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modify—file watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
     preview: {
       host: '0.0.0.0',
-      allowedHosts: previewHostAllowlist,
       proxy: apiProxy,
     },
   };

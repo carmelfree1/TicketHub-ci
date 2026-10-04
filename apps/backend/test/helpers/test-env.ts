@@ -14,6 +14,7 @@ export function configureTestEnv(databaseUrl = 'postgresql://tickethub:tickethub
   process.env.SMS_PROVIDER_API_KEY = 'test-sms-key';
   process.env.DATA_ENCRYPTION_KEY = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
   // Tests hammer the API far beyond human rates; dedicated rate-limit tests lower these explicitly.
+  process.env.API_RATE_LIMIT_MAX ??= '100000';
   process.env.AUTH_RATE_LIMIT_MAX ??= '1000';
   process.env.MFA_RATE_LIMIT_MAX ??= '1000';
   process.env.PAYMENT_RATE_LIMIT_MAX ??= '1000';
