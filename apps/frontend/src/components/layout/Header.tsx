@@ -1,169 +1,88 @@
 import React from 'react';
-import { type AppScreen, type UserRole } from '@/types';
-import { ASSETS } from '@/lib/assets';
+import { type AppScreen, type AuthUser, type UserRole } from '@/types';
 
 interface HeaderProps {
   currentScreen: AppScreen;
   userRole: UserRole;
+  user: AuthUser | null;
   onNavigate: (screen: AppScreen) => void;
   onOpenProfile: () => void;
   backScreen?: AppScreen;
 }
 
-export const Header: React.FC<HeaderProps> = ({
-  currentScreen,
-  userRole,
-  onNavigate,
-  onOpenProfile,
-  backScreen,
-}) => {
-  const isSubScreen =
-    currentScreen === 'seat-selection' ||
-    currentScreen === 'event-selection' ||
-    currentScreen === 'payment' ||
-    currentScreen === 'payment-result' ||
-    currentScreen === 'digital-pass' ||
-    currentScreen === 'partner-scanner';
+const screenTitles: Partial<Record<AppScreen, string>> = {
+  'seat-selection': 'Choix des sièges',
+  'event-selection': 'Choix des billets',
+  'payment-result': 'Vérification du paiement',
+  payment: 'Paiement',
+  'digital-pass': 'Billet',
+  'tickets-wallet': 'Mes billets',
+  'partner-dashboard': 'Espace partenaire',
+  'partner-scanner': 'Scanner de billets',
+  'partner-manifest': 'Manifeste',
+};
 
-  const handleBack = () => {
-    if (currentScreen === 'seat-selection' || currentScreen === 'event-selection' || currentScreen === 'payment-result') onNavigate('explorer');
-    else if (currentScreen === 'payment') onNavigate(backScreen || 'seat-selection');
-    else if (currentScreen === 'digital-pass') onNavigate('explorer');
-    else if (currentScreen === 'partner-scanner') onNavigate('partner-fleet');
+const subScreens: AppScreen[] = ['seat-selection', 'event-selection', 'payment', 'payment-result', 'digital-pass', 'partner-scanner'];
+
+function initials(name: string): string {
+  const letters = name.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase() ?? '');
+  return letters.join('') || '?';
+}
+
+export const Header: React.FC<HeaderProps> = ({ currentScreen, userRole, user, onNavigate, onOpenProfile, backScreen }) => {
+  const isSubScreen = subScreens.includes(currentScreen);
+  const title = screenTitles[currentScreen];
+
+  const goBack = () => {
+    if (currentScreen === 'payment') onNavigate(backScreen || 'seat-selection');
+    else if (currentScreen === 'partner-scanner') onNavigate('partner-manifest');
     else onNavigate('explorer');
   };
 
-  const getScreenTitle = () => {
-    switch (currentScreen) {
-      case 'explorer':
-        return null;
-      case 'seat-selection':
-        return 'Sélection Des Sièges';
-      case 'event-selection':
-        return 'Billets événementiels';
-      case 'payment-result':
-        return 'Vérification paiement';
-      case 'payment':
-        return 'Paiement Mobile Money';
-      case 'digital-pass':
-        return 'Pass Digital';
-      case 'tickets-wallet':
-        return 'Mes Billets';
-      case 'partner-dashboard':
-        return 'Dashboard Ventes';
-      case 'partner-fleet':
-        return 'Trajets & Offres';
-      case 'partner-scanner':
-        return 'Scanner QR Contrôleur';
-      case 'partner-manifest':
-        return 'Commandes & Billets';
-      default:
-        return 'TicketHub CI';
-    }
-  };
-
-  const title = getScreenTitle();
-
   return (
-    <header className="fixed top-0 inset-x-0 z-40 bg-[#f8f9ff]/90 backdrop-blur-xl border-b border-[#e2bfb0]/30 shadow-[0_1px_8px_rgba(11,28,48,0.04)]">
-      <div className="mx-auto h-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
-        {/* Left Side: Back button or Logo + Title */}
-        <div className="flex items-center gap-2 min-w-0">
-          {isSubScreen ? (
+    <header className="fixed inset-x-0 top-0 z-40 border-b border-[#dce9ff] bg-[#f8f9ff]/95 backdrop-blur">
+      <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
+        <div className="flex min-w-0 items-center gap-2">
+          {isSubScreen && (
             <button
-              onClick={handleBack}
+              type="button"
+              onClick={goBack}
               aria-label="Retour"
-              className="w-10 h-10 flex items-center justify-center rounded-full text-[#0b1c30] hover:bg-[#eff4ff] active:scale-95 transition-all -ml-1 cursor-pointer"
+              className="-ml-2 flex h-11 w-11 items-center justify-center rounded-lg text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00]"
             >
-              <span className="material-symbols-outlined text-[24px]">arrow_back</span>
+              <span className="material-symbols-outlined text-[24px]" aria-hidden="true">arrow_back</span>
             </button>
-          ) : null}
+          )}
 
-          {userRole === 'traveler' ? (
-            <div
-              onClick={() => onNavigate('explorer')}
-              className="flex items-center gap-2 cursor-pointer select-none min-w-0"
-            >
-              <img
-                src={ASSETS.logo}
-                alt="TicketHub CI Logo"
-                className="h-7 w-auto object-contain flex-shrink-0"
-              />
-              {currentScreen === 'explorer' ? (
-                <div className="flex flex-col min-w-0">
-                  <div className="flex items-center gap-1">
-                    <span className="font-headline text-[17px] font-bold tracking-tight text-[#ff6b00] leading-none">
-                      TicketHub
-                    </span>
-                    <span className="font-body text-[10px] px-1.5 py-0.5 rounded-full bg-[#a5f0be] text-[#00522e] font-bold leading-none">
-                      CI
-                    </span>
-                  </div>
-                  <span className="font-body text-[11px] text-[#5a4136] leading-tight">
-                    L'Agrégateur Officiel
-                  </span>
-                </div>
-              ) : (
-                <h1 className="font-headline text-[16px] text-[#0b1c30] font-bold truncate">
-                  {title}
-                </h1>
-              )}
-            </div>
+          {title && isSubScreen ? (
+            <p className="truncate font-headline text-[16px] font-bold text-[#0b1c30]">{title}</p>
           ) : (
-            /* Partner Mode Header */
-            <div
-              onClick={() => onNavigate('partner-dashboard')}
-              className="flex items-center gap-2 cursor-pointer select-none min-w-0"
+            <button
+              type="button"
+              onClick={() => onNavigate(userRole === 'partner' ? 'partner-dashboard' : 'explorer')}
+              className="flex min-w-0 items-baseline gap-2 rounded-md cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00]"
             >
-              <img
-                src={ASSETS.partnerLogo}
-                alt="UTB Partner Pro"
-                className="h-8 w-auto object-contain flex-shrink-0"
-              />
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-body text-[11px] uppercase tracking-wider text-[#a04100] font-bold">
-                    Partner Pro
-                  </span>
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-[#a5f0be] text-[#00522e] font-body text-[9px] font-bold">
-                    UTB PRO
-                  </span>
-                </div>
-                <h1 className="font-headline text-[15px] font-bold text-[#0b1c30] truncate">
-                  {title || 'Dashboard Ventes'}
-                </h1>
-              </div>
-            </div>
+              <span className="font-headline text-[18px] font-bold tracking-tight text-[#0b1c30]">
+                TicketHub<span className="text-[#ff6b00]"> CI</span>
+              </span>
+              {userRole === 'partner' && title && <span className="truncate font-body text-[13px] text-[#5a4136]">{title}</span>}
+            </button>
           )}
         </div>
 
-        {/* Right Side: Location or Mode Switcher & Profile Avatar */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {userRole === 'traveler' && currentScreen === 'explorer' && (
-            <div className="hidden sm:flex h-8 px-2.5 rounded-full bg-[#eff4ff] items-center gap-1.5 border border-[#dce9ff] text-[12px] font-semibold text-[#0b1c30] shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-[#216b43] animate-pulse"></span>
-              <span>Abidjan 🇨🇮</span>
-            </div>
+        <button
+          type="button"
+          onClick={onOpenProfile}
+          aria-label={user ? `Mon compte, ${user.fullName}` : 'Se connecter'}
+          className="flex h-11 min-w-[44px] items-center justify-center gap-2 rounded-lg border border-[#dce9ff] bg-white px-2 font-headline text-[13px] font-bold text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#ff6b00]"
+        >
+          {user ? (
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-[#0b1c30] text-[12px] text-white" aria-hidden="true">{initials(user.fullName)}</span>
+          ) : (
+            <span className="material-symbols-outlined text-[22px]" aria-hidden="true">person</span>
           )}
-
-          {userRole === 'partner' && (
-            <span className="inline-flex items-center px-2 py-1 rounded-full bg-[#eff4ff] text-[#5a4136] font-body text-[10px] font-bold border border-[#dce9ff]">
-              Gare Adjamé
-            </span>
-          )}
-
-          <button
-            onClick={onOpenProfile}
-            title="Options de profil et changement de mode"
-            className="w-9 h-9 rounded-full overflow-hidden ring-2 ring-[#ff6b00]/30 hover:ring-[#ff6b00] active:scale-95 transition-all cursor-pointer shadow-xs flex-shrink-0"
-          >
-            <img
-              src={userRole === 'traveler' ? ASSETS.userAvatar : ASSETS.partnerAvatar}
-              alt="Profil"
-              className="w-full h-full object-cover"
-            />
-          </button>
-        </div>
+          {!user && <span className="hidden sm:inline">Connexion</span>}
+        </button>
       </div>
     </header>
   );

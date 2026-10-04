@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { formatXof } from '@tickethub/shared';
 import { type DigitalTicket } from '@/types';
-import { ASSETS } from '@/lib/assets';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface DigitalPassScreenProps {
@@ -73,7 +72,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
         {/* 1. Toast Feedback Webhook Success GeniusPay */}
         <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#a5f0be] text-[#002110] shadow-sm border border-[#216b43]/20">
           <div className="w-10 h-10 rounded-full bg-[#216b43] flex items-center justify-center text-white flex-shrink-0 shadow-sm">
-            <span className="material-symbols-outlined text-[22px] fill">verified</span>
+            <span className="material-symbols-outlined text-[22px] fill" aria-hidden="true">verified</span>
           </div>
           <div className="flex flex-col min-w-0">
             <span className="font-headline text-[10px] tracking-wider uppercase text-[#00522e] font-bold">
@@ -83,7 +82,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
               Paiement validé avec succès !
             </p>
             <span className="font-body text-[11px] text-[#002110]/80">
-              {isEvent ? 'Votre billet événementiel signé, prêt à être contrôlé.' : 'Votre titre de transport officiel est émis et sécurisé.'}
+              {isEvent ? 'Votre billet est émis et prêt à être contrôlé.' : 'Votre billet est émis. Présentez ce QR code à l’embarquement.'}
             </span>
           </div>
         </div>
@@ -94,16 +93,16 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
           <div className="p-4 pb-3 bg-[#eff4ff] flex flex-col gap-2 relative border-b border-[#dce9ff]">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <span className="px-2.5 py-1 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[11px] uppercase tracking-wider font-bold border border-[#ffb693]">
+                <span className="px-2.5 py-1 rounded-md bg-[#ffdbcc] text-[#a04100] font-headline text-[11px] uppercase tracking-wider font-bold border border-[#ffb693]">
                   {isEvent ? 'Événement' : ticket.carrier}
                 </span>
-                <span className="px-2 py-0.5 rounded-full bg-[#dce9ff] text-[#0b1c30] font-headline text-[10px] font-bold">
+                <span className="px-2 py-0.5 rounded-md bg-[#dce9ff] text-[#0b1c30] font-headline text-[10px] font-bold">
                   {ticket.category}
                 </span>
               </div>
 
               {/* Status Badge */}
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#a5f0be] text-[#00522e] shadow-xs">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-[#a5f0be] text-[#00522e] shadow-xs">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#216b43] opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-[#216b43]"></span>
@@ -122,7 +121,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
                     {ticket.departCity}
                   </span>
                   <span className="font-body text-[11px] text-[#5a4136] flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[15px] text-[#ff6b00]">
+                    <span className="material-symbols-outlined text-[15px] text-[#ff6b00]" aria-hidden="true">
                       location_on
                     </span>
                     {ticket.departStation}
@@ -130,7 +129,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
                 </div>
 
                 <div className="flex flex-col items-center px-1">
-                  <span className="material-symbols-outlined text-[#ff6b00] text-[24px]">
+                  <span className="material-symbols-outlined text-[#ff6b00] text-[24px]" aria-hidden="true">
                     {isEvent ? 'confirmation_number' : 'arrow_right_alt'}
                   </span>
                   <span className="font-headline text-[10px] text-[#5a4136] font-bold">
@@ -144,7 +143,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
                   </span>
                   <span className="font-body text-[11px] text-[#5a4136] flex items-center gap-1">
                     {isEvent ? ticket.eventCategory || ticket.category : ticket.arrivalStation}
-                    <span className="material-symbols-outlined text-[15px] text-[#ff6b00]">
+                    <span className="material-symbols-outlined text-[15px] text-[#ff6b00]" aria-hidden="true">
                       pin_drop
                     </span>
                   </span>
@@ -210,13 +209,13 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
 
               <div className="p-2 rounded-xl bg-[#eff4ff] border border-[#dce9ff]">
                 <span className="font-headline text-[10px] text-[#5a4136] font-bold uppercase block">
-                  {isEvent ? 'Événement' : 'Confort'}
+                  {isEvent ? 'Événement' : 'Transporteur'}
                 </span>
                 <span className="font-headline text-[15px] font-bold text-[#0b1c30] mt-0.5 block">
-                  {isEvent ? ticket.eventCategory || ticket.category : 'VIP'}
+                  {isEvent ? ticket.eventCategory || ticket.category : ticket.carrier}
                 </span>
                 <span className="font-body text-[10px] text-[#216b43] font-bold block">
-                  {isEvent ? 'Entrée valable' : 'Climatisé + Wifi'}
+                  {isEvent ? 'Entrée valable' : ticket.category}
                 </span>
               </div>
 
@@ -234,14 +233,13 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
             {/* DYNAMIC QR CODE WITH HOLOGRAPHIC SCANNER */}
             <div className="relative mt-1 p-4 rounded-2xl bg-[#eff4ff] border border-[#dce9ff] flex flex-col items-center text-center overflow-hidden">
               {/* Scan Laser effect */}
-              <div className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#ff6b00] to-transparent animate-scan-laser pointer-events-none shadow-[0_0_12px_#ff6b00]"></div>
 
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white text-[#0b1c30] shadow-xs mb-3 border border-[#dce9ff]">
-                <span className="material-symbols-outlined text-[16px] text-[#216b43]">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-md bg-white text-[#0b1c30] shadow-xs mb-3 border border-[#dce9ff]">
+                <span className="material-symbols-outlined text-[16px] text-[#216b43]" aria-hidden="true">
                   verified_user
                 </span>
                 <span className="font-headline text-[10px] uppercase tracking-wider font-bold">
-                  HMAC-SHA256 Token Certifié
+                  QR code signé
                 </span>
               </div>
 
@@ -272,7 +270,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
                     aria-label="Copier le code de billet"
                     className="w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-[#dce9ff] text-[#0b1c30] shadow-xs active:scale-95 transition-transform cursor-pointer border border-[#dce9ff]"
                   >
-                    <span className="material-symbols-outlined text-[17px]">
+                    <span className="material-symbols-outlined text-[17px]" aria-hidden="true">
                       {copied ? 'check' : 'content_copy'}
                     </span>
                   </button>
@@ -292,7 +290,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
           {/* Ticket Footing with Timestamp */}
           <div className="px-4 py-2 bg-[#eff4ff] text-[#5a4136] flex items-center justify-between text-[11px] border-t border-[#dce9ff]">
             <span className="flex items-center gap-1 font-body text-[11px] text-[#216b43] font-bold">
-              <span className="material-symbols-outlined text-[15px]">network_ping</span>
+              <span className="material-symbols-outlined text-[15px]" aria-hidden="true">network_ping</span>
               Billet signé · vérifiable par le scanner partenaire
             </span>
             <span className="font-body text-[11px]">{ticket.issuedAt}</span>
@@ -304,9 +302,9 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
           <button
             type="button"
             onClick={handleSavePdf}
-            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[14px] font-bold flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-transform cursor-pointer print:hidden"
+            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[14px] font-bold flex items-center justify-center gap-2 shadow-md active:scale-[0.98] transition-transform cursor-pointer print:hidden"
           >
-            <span className="material-symbols-outlined text-[20px]">print</span>
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">print</span>
             <span>Imprimer / enregistrer en PDF</span>
           </button>
 
@@ -316,7 +314,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
               onClick={handleShareWhatsApp}
               className="min-h-[44px] px-3 py-2 rounded-xl bg-white border border-[#e2bfb0]/40 text-[#0b1c30] font-headline text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-[#eff4ff] active:scale-95 transition-transform cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px] text-[#216b43]">
+              <span className="material-symbols-outlined text-[18px] text-[#216b43]" aria-hidden="true">
                 share
               </span>
               <span>WhatsApp</span>
@@ -327,7 +325,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
               onClick={handleAddCalendar}
               className="min-h-[44px] px-3 py-2 rounded-xl bg-white border border-[#e2bfb0]/40 text-[#0b1c30] font-headline text-[13px] font-bold flex items-center justify-center gap-1.5 shadow-xs hover:bg-[#eff4ff] active:scale-95 transition-transform cursor-pointer"
             >
-              <span className="material-symbols-outlined text-[18px] text-[#ff6b00]">
+              <span className="material-symbols-outlined text-[18px] text-[#ff6b00]" aria-hidden="true">
                 {calendarAdded ? 'event_available' : 'calendar_month'}
               </span>
               <span>{calendarAdded ? 'Fichier .ics téléchargé' : 'Télécharger calendrier'}</span>
@@ -339,7 +337,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
         {isEvent ? (
           <div className="p-4 rounded-2xl bg-white border border-[#e2bfb0]/30 flex flex-col gap-2.5 shadow-xs">
             <div className="flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-[20px] text-[#ff6b00]">confirmation_number</span>
+              <span className="material-symbols-outlined text-[20px] text-[#ff6b00]" aria-hidden="true">confirmation_number</span>
               <span className="font-headline text-[14px] font-bold text-[#0b1c30]">Accès à l’événement</span>
             </div>
             <p className="font-body text-[12px] text-[#0b1c30] leading-relaxed">
@@ -352,7 +350,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
                 onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ticket.venue}, ${ticket.departCity || ''}`)}`, '_blank', 'noopener,noreferrer')}
                 className="self-start px-2.5 py-1 rounded-lg bg-[#eff4ff] text-[#0b1c30] font-headline text-[11px] font-bold flex items-center gap-1 border border-[#dce9ff] cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[14px] text-[#ff6b00]">navigation</span>
+                <span className="material-symbols-outlined text-[14px] text-[#ff6b00]" aria-hidden="true">navigation</span>
                 Itinéraire du lieu
               </button>
             )}
@@ -361,58 +359,37 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
           <div className="p-4 rounded-2xl bg-white border border-[#e2bfb0]/30 flex flex-col gap-2.5 shadow-xs">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-[20px] text-[#ff6b00]">directions_bus</span>
+                <span className="material-symbols-outlined text-[20px] text-[#ff6b00]" aria-hidden="true">directions_bus</span>
                 <span className="font-headline text-[14px] font-bold text-[#0b1c30]">Instructions d’embarquement</span>
               </div>
-              {ticket.quai && <span className="font-headline text-[10px] text-[#216b43] font-bold uppercase tracking-wider bg-[#a5f0be] px-2 py-0.5 rounded-full">{ticket.quai}</span>}
+              {ticket.quai && <span className="font-headline text-[10px] text-[#216b43] font-bold uppercase tracking-wider bg-[#a5f0be] px-2 py-0.5 rounded-md">{ticket.quai}</span>}
             </div>
             <div className="flex flex-col gap-1.5 font-body text-[12px] text-[#0b1c30]">
               <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-[17px] text-[#5a4136] flex-shrink-0 mt-0.5">schedule</span>
+                <span className="material-symbols-outlined text-[17px] text-[#5a4136] flex-shrink-0 mt-0.5" aria-hidden="true">schedule</span>
                 <span>Présentez-vous à <strong>{ticket.departStation || ticket.departCity}</strong> avant <strong className="text-[#ff6b00]">{ticket.boardingTime}</strong> avec une pièce d’identité originale.</span>
               </div>
               <div className="flex items-start gap-2">
-                <span className="material-symbols-outlined text-[17px] text-[#5a4136] flex-shrink-0 mt-0.5">luggage</span>
+                <span className="material-symbols-outlined text-[17px] text-[#5a4136] flex-shrink-0 mt-0.5" aria-hidden="true">luggage</span>
                 <span>Consultez les conditions de bagages auprès du transporteur avant le départ.</span>
               </div>
             </div>
             {ticket.departStation && (
-              <div className="relative w-full h-32 rounded-xl overflow-hidden shadow-xs mt-1 border border-[#dce9ff]">
-                <img src={ASSETS.mapAdjame} alt={`Point de départ : ${ticket.departStation}`} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/85 via-transparent to-transparent flex items-end p-2.5 justify-between">
-                  <div className="flex flex-col text-white"><span className="font-headline text-[12px] font-bold">{ticket.departStation}</span><span className="font-body text-[10px] opacity-90">{ticket.departCity}</span></div>
-                  <button type="button" onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ticket.departStation}, ${ticket.departCity}`)}`, '_blank', 'noopener,noreferrer')} className="px-2.5 py-1 rounded-lg bg-white text-[#0b1c30] font-headline text-[11px] font-bold flex items-center gap-1 shadow-xs cursor-pointer">
-                    <span className="material-symbols-outlined text-[14px] text-[#ff6b00]">navigation</span>Itinéraire
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${ticket.departStation}, ${ticket.departCity}`)}`, '_blank', 'noopener,noreferrer')}
+                className="mt-1 flex min-h-[44px] items-center justify-center gap-2 rounded-lg border border-[#dce9ff] bg-white px-3 font-headline text-[13px] font-bold text-[#0b1c30] hover:bg-[#eff4ff] cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px] text-[#ff6b00]" aria-hidden="true">navigation</span>
+                Itinéraire vers {ticket.departStation}
+              </button>
             )}
           </div>
         )}
 
-        {/* 5. Support 24/7 Assistance */}
-        <div className="p-3.5 rounded-2xl bg-white border border-[#e2bfb0]/30 flex items-center justify-between shadow-xs">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-full bg-[#ffdbcc] text-[#a04100] flex items-center justify-center flex-shrink-0">
-              <span className="material-symbols-outlined text-[20px]">support_agent</span>
-            </div>
-            <div className="flex flex-col">
-              <span className="font-headline text-[13px] font-bold text-[#0b1c30]">
-                Besoin d'assistance ?
-              </span>
-              <span className="font-body text-[11px] text-[#5a4136]">
-                Support TicketHub CI disponible 24/7
-              </span>
-            </div>
-          </div>
-          <a
-            href="tel:+2250700000000"
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-[#eff4ff] text-[#ff6b00] border border-[#dce9ff] shadow-xs active:scale-95 transition-transform cursor-pointer"
-            aria-label="Appeler le support"
-          >
-            <span className="material-symbols-outlined text-[20px]">call</span>
-          </a>
-        </div>
+        <p className="rounded-xl border border-[#dce9ff] bg-white p-3.5 font-body text-[12px] leading-relaxed text-[#5a4136]">
+          Un problème avec ce billet ? Présentez votre référence de commande <strong className="font-bold text-[#0b1c30]">{ticket.commandRef}</strong> au transporteur ou à l’organisateur.
+        </p>
 
         {/* Back to Explorer action */}
         <button
@@ -420,7 +397,7 @@ export const DigitalPassScreen: React.FC<DigitalPassScreenProps> = ({
           onClick={onBackToExplorer}
           className="w-full py-3 rounded-xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[13px] font-bold hover:bg-[#dce9ff] transition-colors border border-[#dce9ff] cursor-pointer"
         >
-          Retour à l'accueil Explorer
+          Retour au catalogue
         </button>
       </div>
     </div>

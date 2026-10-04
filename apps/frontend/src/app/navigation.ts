@@ -35,7 +35,6 @@ export function useScreenNavigation() {
         refreshTickets();
         return go(paths.wallet);
       case 'partner-dashboard':
-      case 'partner-fleet':
       case 'partner-scanner':
       case 'partner-manifest': {
         if (user?.role !== 'partner') {
@@ -44,7 +43,6 @@ export function useScreenNavigation() {
         }
         const target = {
           'partner-dashboard': paths.partner,
-          'partner-fleet': paths.partnerFleet,
           'partner-scanner': paths.partnerScanner,
           'partner-manifest': paths.partnerManifest,
         }[screen];

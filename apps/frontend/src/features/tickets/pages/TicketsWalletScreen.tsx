@@ -64,7 +64,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
           <h2 className="font-headline text-[20px] font-bold text-[#0b1c30]">Mes billets</h2>
           <p className="font-body text-[12px] text-[#5a4136]">Billets émis après confirmation du paiement</p>
         </div>
-        <span className="px-2.5 py-1 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[11px] font-bold border border-[#ffb693]">
+        <span className="px-2.5 py-1 rounded-md bg-[#ffdbcc] text-[#a04100] font-headline text-[11px] font-bold border border-[#ffb693]">
           {activeCount} actif{activeCount === 1 ? '' : 's'}
         </span>
       </div>
@@ -84,7 +84,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
 
       {!loading && !error && tickets.length === 0 && (
         <div className="p-5 rounded-2xl bg-white border border-[#dce9ff] text-center flex flex-col items-center gap-2">
-          <span className="material-symbols-outlined text-[32px] text-[#ff6b00]">confirmation_number</span>
+          <span className="material-symbols-outlined text-[32px] text-[#ff6b00]" aria-hidden="true">confirmation_number</span>
           <h3 className="font-headline text-[15px] font-bold text-[#0b1c30]">Aucun billet pour le moment</h3>
           <p className="font-body text-[12px] text-[#5a4136]">Vos billets apparaîtront ici après confirmation du paiement par le serveur.</p>
         </div>
@@ -100,7 +100,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
             <article key={record.id} className="bg-white rounded-3xl p-4 shadow-sm border border-[#e2bfb0]/40 flex flex-col gap-3">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex flex-col gap-1">
-                  <span className="self-start px-2.5 py-0.5 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[10px] font-bold border border-[#ffb693]">
+                  <span className="self-start px-2.5 py-0.5 rounded-md bg-[#ffdbcc] text-[#a04100] font-headline text-[10px] font-bold border border-[#ffb693]">
                     {isEvent ? 'Événement' : record.carrier || 'Transport'}
                   </span>
                   <h3 className="font-headline text-[15px] font-bold text-[#0b1c30] truncate">
@@ -110,7 +110,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
                     {isEvent ? `${record.venue || ''}${record.city ? ` · ${record.city}` : ''}` : `${record.departStation || ''} · ${record.arrivalStation || ''}`}
                   </p>
                 </div>
-                <span className={`shrink-0 px-2.5 py-0.5 rounded-full font-headline text-[10px] font-bold uppercase tracking-wider ${isActive ? 'bg-[#a5f0be] text-[#00522e]' : 'bg-[#eff4ff] text-[#5a4136]'}`}>
+                <span className={`shrink-0 px-2.5 py-0.5 rounded-md font-headline text-[10px] font-bold uppercase tracking-wider ${isActive ? 'bg-[#a5f0be] text-[#00522e]' : 'bg-[#eff4ff] text-[#5a4136]'}`}>
                   {record.status === 'active' ? 'Valide' : record.status === 'used' ? 'Utilisé' : 'Annulé'}
                 </span>
               </div>
@@ -119,12 +119,12 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
                 <div className="min-w-0">
                   <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">{isEvent ? 'Catégorie' : 'Siège'}</span>
                   <span className="font-headline text-[12px] font-bold text-[#ff6b00] truncate block">
-                    {isEvent ? record.category || 'Entrée' : record.seats?.join(', ') || '—'}
+                    {isEvent ? record.category || 'Entrée' : record.seats?.join(', ') || 'Non précisé'}
                   </span>
                 </div>
                 <div>
                   <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">{isEvent ? 'Événement' : 'Départ'}</span>
-                  <span className="font-headline text-[12px] font-bold text-[#0b1c30]">{record.departureTime || '—'}</span>
+                  <span className="font-headline text-[12px] font-bold text-[#0b1c30]">{record.departureTime || 'Non précisé'}</span>
                 </div>
                 <div>
                   <span className="font-headline text-[9px] uppercase font-bold text-[#5a4136] block">Date · Prix</span>
@@ -135,8 +135,8 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
 
               <div className="flex items-center justify-between gap-2">
                 <span className="font-body text-[10px] text-[#5a4136] truncate">Billet {record.ticketCode}</span>
-                <button type="button" onClick={() => onViewPass(ticket)} className="shrink-0 px-3 py-2 rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer">
-                  <span className="material-symbols-outlined text-[16px]">qr_code_2</span>Afficher le QR
+                <button type="button" onClick={() => onViewPass(ticket)} className="shrink-0 px-3 py-2 rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[11px] font-bold flex items-center gap-1 shadow-sm cursor-pointer">
+                  <span className="material-symbols-outlined text-[16px]" aria-hidden="true">qr_code_2</span>Afficher le QR
                 </button>
               </div>
             </article>
@@ -146,7 +146,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
       </div>
 
       <div className="mt-4 p-4 rounded-2xl bg-[#eff4ff] border border-[#dce9ff] text-center flex flex-col items-center gap-2">
-        <span className="material-symbols-outlined text-[#ff6b00] text-[28px]">explore</span>
+        <span className="material-symbols-outlined text-[#ff6b00] text-[28px]" aria-hidden="true">explore</span>
         <h4 className="font-headline text-[14px] font-bold text-[#0b1c30]">Prêt pour un nouveau départ ?</h4>
         <p className="font-body text-[12px] text-[#5a4136] max-w-xs">Recherchez un trajet ou un événement et retrouvez vos billets ici après paiement confirmé.</p>
         <button type="button" onClick={onExplore} className="mt-1 px-4 py-2 bg-[#ff6b00] text-white rounded-xl font-headline text-[13px] font-bold active:scale-95 transition-transform cursor-pointer">Explorer</button>

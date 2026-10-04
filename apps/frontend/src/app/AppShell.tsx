@@ -28,6 +28,7 @@ export function AppShell() {
         <Header
           currentScreen={screen}
           userRole={session.user?.role ?? 'traveler'}
+          user={session.user}
           onNavigate={goToScreen}
           onOpenProfile={session.openProfile}
           backScreen={draft.event ? 'event-selection' : 'seat-selection'}
@@ -44,6 +45,7 @@ export function AppShell() {
           currentScreen={screen}
           userRole={session.user?.role ?? 'traveler'}
           onNavigate={goToScreen}
+          onOpenProfile={session.openProfile}
           activeTicketCount={session.activeTicketCount}
         />
 

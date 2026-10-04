@@ -24,7 +24,7 @@ export const PaymentResultScreen: React.FC<PaymentResultScreenProps> = ({ state,
   return (
     <div className="min-h-[70vh] px-5 py-12 flex flex-col items-center justify-center text-center gap-4">
       <div className={`w-16 h-16 rounded-full flex items-center justify-center ${isFailure ? 'bg-[#ffdad6] text-[#93000a]' : 'bg-[#dce9ff] text-[#0b1c30]'}`}>
-        <span className={`material-symbols-outlined text-[32px] ${state === 'checking' ? 'animate-spin' : ''}`}>
+        <span className={`material-symbols-outlined text-[32px] ${state === 'checking' ? 'animate-spin' : ''}`} aria-hidden="true">
           {state === 'checking' ? 'progress_activity' : state === 'pending' ? 'hourglass_top' : state === 'review' ? 'support_agent' : isFailure ? 'error' : 'payments'}
         </span>
       </div>

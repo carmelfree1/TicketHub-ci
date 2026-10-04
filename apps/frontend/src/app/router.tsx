@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, RouterProvider, type RouteObject } from 'react-router';
 import { AppShell } from './AppShell';
 import { ErrorPage } from '@/pages/ErrorPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -23,7 +23,8 @@ const routes: RouteObject[] = [
         lazy: async () => ({ Component: (await import('@/routes/PartnerRoutes')).PartnerGuard }),
         children: [
           { index: true, lazy: async () => ({ Component: (await import('@/routes/PartnerRoutes')).Dashboard }) },
-          { path: 'flotte', lazy: async () => ({ Component: (await import('@/routes/PartnerRoutes')).Fleet }) },
+          // The former fleet screen only displayed placeholder data and was removed.
+          { path: 'flotte', element: <Navigate to="/partenaire/manifeste" replace /> },
           { path: 'scanner', lazy: async () => ({ Component: (await import('@/routes/PartnerRoutes')).Scanner }) },
           { path: 'manifeste', lazy: async () => ({ Component: (await import('@/routes/PartnerRoutes')).Manifest }) },
         ],

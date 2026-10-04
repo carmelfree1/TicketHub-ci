@@ -7,7 +7,6 @@ export type AppScreen =
   | 'digital-pass'
   | 'tickets-wallet'
   | 'partner-dashboard'
-  | 'partner-fleet'
   | 'partner-scanner'
   | 'partner-manifest';
 

@@ -10,7 +10,6 @@ export const paths = {
   wallet: '/billets',
   ticket: (ticketCode: string) => `/billets/${encodeURIComponent(ticketCode)}`,
   partner: '/partenaire',
-  partnerFleet: '/partenaire/flotte',
   partnerScanner: '/partenaire/scanner',
   partnerManifest: '/partenaire/manifeste',
 } as const;
@@ -25,7 +24,6 @@ export function screenFromPath(pathname: string): AppScreen | null {
   if (pathname.startsWith('/billets/')) return 'digital-pass';
   if (pathname === paths.wallet) return 'tickets-wallet';
   if (pathname === paths.partner) return 'partner-dashboard';
-  if (pathname === paths.partnerFleet) return 'partner-fleet';
   if (pathname === paths.partnerScanner) return 'partner-scanner';
   if (pathname === paths.partnerManifest) return 'partner-manifest';
   return null;

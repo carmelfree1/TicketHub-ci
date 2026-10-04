@@ -20,12 +20,12 @@ export const EventTicketSelectionScreen: React.FC<EventTicketSelectionScreenProp
   return (
     <div className="flex flex-col w-full pb-32 max-w-md mx-auto px-4 pt-2">
       <button type="button" onClick={onBack} className="self-start mb-2 px-2 py-1 font-headline text-[12px] font-bold text-[#5a4136] flex items-center gap-1 cursor-pointer">
-        <span className="material-symbols-outlined text-[18px]">arrow_back</span> Retour aux événements
+        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">arrow_back</span> Retour aux événements
       </button>
       <section className="bg-white rounded-3xl overflow-hidden shadow-sm border border-[#e2bfb0]/30 mb-3">
         <img src={event.imageUrl} alt="" className="w-full h-40 object-cover" referrerPolicy="no-referrer" />
         <div className="p-4 flex flex-col gap-2">
-          <span className="self-start px-2.5 py-1 rounded-full bg-[#ffdbcc] text-[#a04100] font-headline text-[10px] font-bold uppercase">{event.eventType === 'sport' ? 'Sport' : event.eventType === 'show' ? 'Spectacle' : 'Concert'}</span>
+          <span className="self-start px-2.5 py-1 rounded-md bg-[#ffdbcc] text-[#a04100] font-headline text-[10px] font-bold uppercase">{event.eventType === 'sport' ? 'Sport' : event.eventType === 'show' ? 'Spectacle' : 'Concert'}</span>
           <h2 className="font-headline text-[20px] font-bold text-[#0b1c30] leading-tight">{event.title}</h2>
           <p className="font-body text-[12px] text-[#5a4136]">{event.description}</p>
           <div className="grid grid-cols-2 gap-2 mt-1">
@@ -82,8 +82,8 @@ export const EventTicketSelectionScreen: React.FC<EventTicketSelectionScreenProp
       <div className="fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-[#dce9ff] p-4 shadow-[0_-8px_30px_rgba(11,28,48,0.12)]">
         <div className="max-w-md mx-auto flex flex-col gap-2">
           {actionError && <p role="alert" className="p-2 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[11px]">{actionError}</p>}
-          <button type="button" onClick={() => { if (selected) onContinue(selected, quantity); }} disabled={isBooking || !selected || selected.available < quantity} className="w-full min-h-[50px] rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[14px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
-            <span className="material-symbols-outlined text-[20px]">{isBooking ? 'progress_activity' : 'lock'}</span>
+          <button type="button" onClick={() => { if (selected) onContinue(selected, quantity); }} disabled={isBooking || !selected || selected.available < quantity} className="w-full min-h-[50px] rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[14px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{isBooking ? 'progress_activity' : 'lock'}</span>
             {isBooking ? 'Réservation en cours…' : 'Continuer vers le paiement'}
           </button>
         </div>

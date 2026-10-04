@@ -12,7 +12,6 @@ test('maps every URL to the screen that drives navigation highlighting', () => {
     ['/billets', 'tickets-wallet'],
     ['/billets/TKH-AAAAAA-BBBBBB', 'digital-pass'],
     ['/partenaire', 'partner-dashboard'],
-    ['/partenaire/flotte', 'partner-fleet'],
     ['/partenaire/scanner', 'partner-scanner'],
     ['/partenaire/manifeste', 'partner-manifest'],
     ['/inconnu', null],

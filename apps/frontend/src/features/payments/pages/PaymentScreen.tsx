@@ -66,14 +66,12 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
   > = {
     wave: {
       name: 'Wave Mobile Money',
-      tag: 'Recommandé',
       subtitle: 'Paiement Mobile Money via le checkout sécurisé',
       icon: 'contactless',
       instruction: <span>Vous serez redirigé vers le checkout GeniusPay pour confirmer le paiement Wave.</span>,
     },
     orange: {
       name: 'Orange Money',
-      tag: 'CI',
       subtitle: 'Paiement Orange Money via le checkout sécurisé',
       icon: 'phone_android',
       instruction: <span>Le checkout GeniusPay vous indiquera les étapes Orange Money disponibles pour cette transaction.</span>,
@@ -135,7 +133,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             Session réservée temporairement
           </span>
         </div>
-        <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-full shadow-xs flex-shrink-0 border border-[#cbdbf5]">
+        <div className="flex items-center gap-1 bg-white px-2.5 py-1 rounded-md shadow-xs flex-shrink-0 border border-[#cbdbf5]">
           <span className="font-body text-[11px] text-[#5a4136] font-medium">Expire dans</span>
           <span
             className={`font-headline text-[13px] font-bold leading-none tabular-nums ${
@@ -154,7 +152,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
           <div className="p-4 flex flex-col gap-2">
             <div className="flex items-center justify-between gap-1">
               <div className="flex items-center gap-1.5">
-                <span className="bg-[#eff4ff] text-[#0b1c30] px-2.5 py-0.5 rounded-full font-headline text-[11px] font-bold tracking-wider uppercase border border-[#dce9ff]">
+                <span className="bg-[#eff4ff] text-[#0b1c30] px-2.5 py-0.5 rounded-md font-headline text-[11px] font-bold tracking-wider uppercase border border-[#dce9ff]">
                   {purchaseTitle}
                 </span>
                 <span className="font-body text-[12px] text-[#5a4136]">
@@ -177,7 +175,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
               </div>
 
               <div className="flex flex-col items-center px-2">
-                <span className="material-symbols-outlined text-[#ff6b00] text-[20px]">
+                <span className="material-symbols-outlined text-[#ff6b00] text-[20px]" aria-hidden="true">
                   trending_flat
                 </span>
                 <span className="font-headline text-[10px] text-[#216b43] font-bold">
@@ -198,7 +196,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             {/* Meta tags row */}
             <div className="flex items-center gap-1.5 mt-2 flex-wrap">
               <div className="flex items-center gap-1 bg-[#eff4ff] px-2.5 py-1 rounded-lg border border-[#dce9ff]">
-                <span className="material-symbols-outlined text-[16px] text-[#5a4136]">
+                <span className="material-symbols-outlined text-[16px] text-[#5a4136]" aria-hidden="true">
                   {event ? 'confirmation_number' : 'airline_seat_recline_extra'}
                 </span>
                 <span className="font-headline text-[12px] text-[#0b1c30] font-bold">
@@ -208,7 +206,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-[#eff4ff] px-2.5 py-1 rounded-lg border border-[#dce9ff]">
-                <span className="material-symbols-outlined text-[16px] text-[#5a4136]">
+                <span className="material-symbols-outlined text-[16px] text-[#5a4136]" aria-hidden="true">
                   calendar_today
                 </span>
                 <span className="font-body text-[12px] text-[#0b1c30] font-medium">
@@ -216,7 +214,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                 </span>
               </div>
               <div className="flex items-center gap-1 bg-[#eff4ff] px-2.5 py-1 rounded-lg border border-[#dce9ff]">
-                <span className="material-symbols-outlined text-[16px] text-[#5a4136]">
+                <span className="material-symbols-outlined text-[16px] text-[#5a4136]" aria-hidden="true">
                   person
                 </span>
                 <span className="font-body text-[12px] text-[#0b1c30] font-medium">
@@ -253,23 +251,20 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
         <div className="w-full bg-white rounded-2xl p-3 shadow-xs border border-[#e2bfb0]/30 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2.5 min-w-0">
             <div className="w-9 h-9 rounded-xl bg-[#eff4ff] border border-[#dce9ff] flex items-center justify-center flex-shrink-0 text-[#ff6b00]">
-              <span className="material-symbols-outlined text-[20px] fill">verified_user</span>
+              <span className="material-symbols-outlined text-[20px] fill" aria-hidden="true">verified_user</span>
             </div>
             <div className="flex flex-col min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="font-headline text-[13px] text-[#0b1c30] font-bold leading-tight">
-                  GeniusPay Verified Checkout
-                </span>
-                <span className="bg-[#a5f0be] text-[#00522e] text-[10px] font-bold px-1.5 py-0.5 rounded-full uppercase leading-none">
-                  Certifié
+                  Paiement via GeniusPay
                 </span>
               </div>
               <span className="font-body text-[11px] text-[#5a4136] truncate leading-tight mt-0.5">
-                Paiement 100% Chiffré TLS/HTTPS &amp; Idempotent
+                Vous serez redirigé vers la page de paiement GeniusPay
               </span>
             </div>
           </div>
-          <span className="material-symbols-outlined text-[#216b43] text-[22px] flex-shrink-0">
+          <span className="material-symbols-outlined text-[#216b43] text-[22px] flex-shrink-0" aria-hidden="true">
             lock
           </span>
         </div>
@@ -280,8 +275,8 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <span className="font-headline text-[15px] text-[#0b1c30] font-bold">
               Mode de paiement
             </span>
-            <span className="font-headline text-[11px] text-[#216b43] font-bold flex items-center gap-0.5 bg-[#a5f0be]/30 px-2 py-0.5 rounded-full border border-[#a5f0be]">
-              <span className="material-symbols-outlined text-[13px]">bolt</span>
+            <span className="font-headline text-[11px] text-[#216b43] font-bold flex items-center gap-0.5 bg-[#a5f0be]/30 px-2 py-0.5 rounded-md border border-[#a5f0be]">
+              <span className="material-symbols-outlined text-[13px]" aria-hidden="true">bolt</span>
               0 frais opérateur
             </span>
           </div>
@@ -318,7 +313,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                           : 'bg-[#eff4ff] text-[#5a4136] border-[#dce9ff]'
                       }`}
                     >
-                      <span className="material-symbols-outlined text-[24px]">
+                      <span className="material-symbols-outlined text-[24px]" aria-hidden="true">
                         {op.icon}
                       </span>
                     </div>
@@ -329,7 +324,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
                           {op.name}
                         </span>
                         {op.tag && (
-                          <span className="bg-[#a5f0be] text-[#00522e] text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase leading-none">
+                          <span className="bg-[#a5f0be] text-[#00522e] text-[9px] font-bold px-1.5 py-0.5 rounded-md uppercase leading-none">
                             {op.tag}
                           </span>
                         )}
@@ -359,7 +354,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
         {/* Checkout information */}
         <div className="bg-white rounded-2xl p-4 shadow-xs border border-[#e2bfb0]/30 flex items-start gap-2.5">
-          <span className="material-symbols-outlined text-[#216b43] text-[20px] flex-shrink-0">verified_user</span>
+          <span className="material-symbols-outlined text-[#216b43] text-[20px] flex-shrink-0" aria-hidden="true">verified_user</span>
           <p className="font-body text-[12px] text-[#0b1c30] leading-snug">
             {operatorInfo[selectedMethod].instruction} Le code PIN Mobile Money ne doit être saisi que dans l’application ou le checkout officiel de l’opérateur.
           </p>
@@ -371,7 +366,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <span className="font-headline text-[13px] text-[#0b1c30] font-bold">
               Détail de la facturation
             </span>
-            <span className="font-headline text-[10px] text-[#00522e] bg-[#a5f0be] px-2 py-0.5 rounded-full font-bold uppercase">
+            <span className="font-headline text-[10px] text-[#00522e] bg-[#a5f0be] px-2 py-0.5 rounded-md font-bold uppercase">
               Transparence totale
             </span>
           </div>
@@ -387,7 +382,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             <div className="flex justify-between items-center text-[#5a4136]">
               <div className="flex items-center gap-1">
                 <span>Frais de service plateforme TicketHub</span>
-                <span className="material-symbols-outlined text-[14px] text-[#565e74]">info</span>
+                <span className="material-symbols-outlined text-[14px] text-[#565e74]" aria-hidden="true">info</span>
               </div>
               <span className="text-[#5a4136] font-bold">Selon les conditions affichées</span>
             </div>
@@ -417,7 +412,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
         {/* 7. Security Footnote */}
         <div className="flex items-center justify-center gap-1.5 p-2 bg-[#eff4ff] rounded-xl text-center border border-[#dce9ff]">
-          <span className="material-symbols-outlined text-[#216b43] text-[16px] flex-shrink-0">
+          <span className="material-symbols-outlined text-[#216b43] text-[16px] flex-shrink-0" aria-hidden="true">
             verified
           </span>
           <span className="font-body text-[11px] text-[#5a4136]">
@@ -432,16 +427,16 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
             type="button"
             onClick={handleStartPayment}
             disabled={isProcessing || remainingSeconds <= 0}
-            className="w-full h-14 bg-gradient-to-r from-[#ff6b00] to-[#ff842b] active:scale-[0.98] transition-transform rounded-2xl flex items-center justify-between px-5 shadow-lg shadow-[#ff6b00]/25 text-white font-headline text-[15px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+            className="w-full h-14 bg-[#ff6b00] hover:bg-[#e65f00] active:scale-[0.98] transition-transform rounded-2xl flex items-center justify-between px-5 shadow-lg shadow-[#ff6b00]/25 text-white font-headline text-[15px] font-bold cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
           >
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-[22px]">bolt</span>
+              <span className="material-symbols-outlined text-[22px]" aria-hidden="true">bolt</span>
               <span>
                 {isProcessing ? 'Ouverture du checkout…' : `Continuer vers le checkout GeniusPay`}
               </span>
             </div>
             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center">
-              <span className="material-symbols-outlined text-[18px]">lock</span>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">lock</span>
             </div>
           </button>
 
@@ -453,7 +448,7 @@ export const PaymentScreen: React.FC<PaymentScreenProps> = ({
 
       {isProcessing && (
         <div role="status" className="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-md rounded-2xl bg-[#0b1c30] p-3 text-white shadow-xl flex items-center gap-2">
-          <span className="material-symbols-outlined animate-spin">progress_activity</span>
+          <span className="material-symbols-outlined animate-spin" aria-hidden="true">progress_activity</span>
           <span className="font-body text-[12px]">Connexion au checkout hébergé…</span>
         </div>
       )}

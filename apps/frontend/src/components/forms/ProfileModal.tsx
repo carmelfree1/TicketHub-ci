@@ -118,7 +118,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             aria-label="Fermer"
             className="w-9 h-9 rounded-full bg-[#eff4ff] flex items-center justify-center text-[#5a4136] hover:text-[#0b1c30] cursor-pointer"
           >
-            <span className="material-symbols-outlined text-[18px]">close</span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">close</span>
           </button>
         </div>
 
@@ -126,7 +126,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           <>
             <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#eff4ff] border border-[#dce9ff]">
               <div className="w-12 h-12 rounded-full bg-[#ffdbcc] text-[#a04100] flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-[26px]">
+                <span className="material-symbols-outlined text-[26px]" aria-hidden="true">
                   {user.role === 'partner' ? 'badge' : 'person'}
                 </span>
               </div>
@@ -140,11 +140,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
             </div>
             <div className="grid grid-cols-2 gap-2">
               <button type="button" onClick={() => navigate(user.role === 'partner' ? 'partner-dashboard' : 'tickets-wallet')} className="p-3 rounded-2xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#dce9ff]">
-                <span className="material-symbols-outlined text-[18px]">{user.role === 'partner' ? 'analytics' : 'confirmation_number'}</span>
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{user.role === 'partner' ? 'analytics' : 'confirmation_number'}</span>
                 {user.role === 'partner' ? 'Espace partenaire' : 'Mes billets'}
               </button>
               <button type="button" onClick={() => navigate('explorer')} className="p-3 rounded-2xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#dce9ff]">
-                <span className="material-symbols-outlined text-[18px]">explore</span>
+                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">explore</span>
                 Explorer
               </button>
             </div>
@@ -225,7 +225,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 </details>
               )}
               {error && <p role="alert" className="p-2.5 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[12px]">{error}</p>}
-              <button disabled={isBusy} type="submit" className="w-full min-h-[46px] rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
+              <button disabled={isBusy} type="submit" className="w-full min-h-[46px] rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
                 {isBusy ? 'Veuillez patienter…' : mode === 'login' ? 'Se connecter' : 'Créer mon compte'}
               </button>
               <p className="font-body text-[10px] text-center text-[#5a4136]">Vos données de connexion sont envoyées uniquement à l’API TicketHub.</p>

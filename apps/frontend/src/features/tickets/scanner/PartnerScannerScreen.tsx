@@ -153,7 +153,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
             <p className="font-headline text-[10px] text-[#216b43] uppercase font-bold tracking-wider">Contrôle partenaire</p>
             <h2 className="font-headline text-[19px] text-[#0b1c30] font-bold">Scanner les billets</h2>
           </div>
-          <span className="px-2.5 py-1 rounded-full bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[10px] font-bold">{sessionValidated} validé{sessionValidated === 1 ? '' : 's'} ici</span>
+          <span className="px-2.5 py-1 rounded-md bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[10px] font-bold">{sessionValidated} validé{sessionValidated === 1 ? '' : 's'} ici</span>
         </div>
         <p className="font-body text-[12px] text-[#5a4136]">Chaque scan est contrôlé côté serveur et le billet est marqué comme utilisé de façon atomique.</p>
       </section>
@@ -167,22 +167,22 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
           )}
           <div className="relative z-10 w-52 h-52 flex items-center justify-center pointer-events-none">
             <div className="absolute inset-0 rounded-2xl border-2 border-white/60" />
-            <span className="material-symbols-outlined text-white/75 text-[46px]">qr_code_scanner</span>
+            <span className="material-symbols-outlined text-white/75 text-[46px]" aria-hidden="true">qr_code_scanner</span>
             <span className="absolute inset-x-1 h-1 bg-[#ff6b00] shadow-[0_0_14px_#ff6b00] animate-scan-laser" />
           </div>
           <div className="absolute bottom-3 inset-x-3 z-20 text-center">
-            <p role="status" className="font-body text-[11px] text-white bg-[#0b1c30]/80 px-3 py-1.5 rounded-full inline-block">{cameraMessage}</p>
+            <p role="status" className="font-body text-[11px] text-white bg-[#0b1c30]/80 px-3 py-1.5 rounded-md inline-block">{cameraMessage}</p>
           </div>
         </div>
 
         <div className="flex gap-2">
           {!cameraActive ? (
-            <button type="button" onClick={() => { setScanMessage(null); setCameraActive(true); }} disabled={isSubmitting} className="flex-1 min-h-[46px] rounded-xl bg-gradient-to-r from-[#ff6b00] to-[#ff842b] text-white font-headline text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
-              <span className="material-symbols-outlined">photo_camera</span>Démarrer la caméra
+            <button type="button" onClick={() => { setScanMessage(null); setCameraActive(true); }} disabled={isSubmitting} className="flex-1 min-h-[46px] rounded-xl bg-[#ff6b00] hover:bg-[#e65f00] text-white font-headline text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50">
+              <span className="material-symbols-outlined" aria-hidden="true">photo_camera</span>Démarrer la caméra
             </button>
           ) : (
             <button type="button" onClick={stopCamera} className="flex-1 min-h-[46px] rounded-xl bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[13px] font-bold flex items-center justify-center gap-2 cursor-pointer">
-              <span className="material-symbols-outlined">videocam_off</span>Arrêter la caméra
+              <span className="material-symbols-outlined" aria-hidden="true">videocam_off</span>Arrêter la caméra
             </button>
           )}
         </div>
@@ -202,7 +202,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
         {scanMessage && (
           <div role={scanMessage.ok ? 'status' : 'alert'} className={`p-4 rounded-2xl border flex flex-col gap-2 ${scanMessage.ok ? 'bg-[#a5f0be] text-[#00522e] border-[#216b43]/20' : 'bg-[#ffdad6] text-[#93000a] border-[#ba1a1a]/20'}`}>
             <div className="flex items-center gap-2 font-headline text-[14px] font-bold">
-              <span className="material-symbols-outlined">{scanMessage.ok ? 'verified' : 'block'}</span>
+              <span className="material-symbols-outlined" aria-hidden="true">{scanMessage.ok ? 'verified' : 'block'}</span>
               {scanMessage.ok ? 'ACCÈS AUTORISÉ' : 'ACCÈS REFUSÉ'}
             </div>
             <p className="font-body text-[12px]">{scanMessage.message}</p>
@@ -211,7 +211,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
                 <span className="font-bold">{result.passengerName || 'Billet vérifié'} · {result.ticketCode}</span>
                 {isEvent
                   ? <span>{result.eventTitle} · {result.venue} · {result.category}</span>
-                  : <span>{result.departCity} → {result.arrivalCity} · Siège {result.seats?.join(', ') || '—'}</span>}
+                  : <span>{result.departCity} → {result.arrivalCity} · Siège {result.seats?.join(', ') || 'non précisé'}</span>}
                 <span>{formatXof(Number(result.price || 0))} FCFA · {result.usedAt ? new Date(result.usedAt).toLocaleTimeString('fr-FR') : 'contrôlé maintenant'}</span>
               </div>
             )}

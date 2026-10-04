@@ -72,15 +72,20 @@ export async function startE2eContext(databaseUrl: string) {
   const registerTraveler = (name = 'Voyageur Test') => register(name);
   const registerPartner = (name = 'Partenaire Test') => register(name, { partnerInviteCode: process.env.PARTNER_INVITE_CODE });
 
-  /** Returns a trip with at least `count` free seats and those seat numbers. */
+  const shuffled = <T,>(items: T[]): T[] => items.map((item) => ({ item, key: Math.random() })).sort((x, y) => x.key - y.key).map(({ item }) => item);
+
+  /**
+   * Returns a trip with at least `count` free seats and some of those seats. Both are random because test files
+   * run in parallel against one database; always taking the first free seat made them collide.
+   */
   async function freeSeats(count: number): Promise<{ tripId: string; seats: number[] }> {
     const response = await api('/api/catalog/trips');
     assert.equal(response.status, 200);
     const trips = (await response.json() as { data: Array<{ id: string; seatCapacity: number; occupiedSeats: number[] }> }).data;
-    for (const trip of trips) {
+    for (const trip of shuffled(trips)) {
       const occupied = new Set(trip.occupiedSeats);
       const seats = Array.from({ length: trip.seatCapacity }, (_, index) => index + 1).filter((seat) => !occupied.has(seat));
-      if (seats.length >= count) return { tripId: trip.id, seats: seats.slice(0, count) };
+      if (seats.length >= count) return { tripId: trip.id, seats: shuffled(seats).slice(0, count).sort((x, y) => x - y) };
     }
     assert.fail('no trip with enough free seats; run db:seed on the test database');
   }
@@ -90,10 +95,14 @@ export async function startE2eContext(databaseUrl: string) {
   }
 
   async function reserveOk(session: Session, seatCount = 1): Promise<Booking> {
-    const { tripId, seats } = await freeSeats(seatCount);
-    const response = await reserve(session, tripId, seats);
-    assert.equal(response.status, 201, await response.clone().text());
-    return (await response.json() as { data: Booking }).data;
+    // A parallel test file can still take the same random seat; retry with a fresh pick.
+    for (let attempt = 0; ; attempt += 1) {
+      const { tripId, seats } = await freeSeats(seatCount);
+      const response = await reserve(session, tripId, seats);
+      if (response.status === 409 && attempt < 4) continue;
+      assert.equal(response.status, 201, await response.clone().text());
+      return (await response.json() as { data: Booking }).data;
+    }
   }
 
   async function startPayment(session: Session, booking: Booking): Promise<{ providerReference: string }> {

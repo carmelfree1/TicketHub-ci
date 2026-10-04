@@ -27,7 +27,7 @@ export function StatusPanel({ tone, title, description, icon, actions }: StatusP
       className="mx-auto w-full max-w-md px-4 py-16 flex flex-col items-center text-center gap-4"
     >
       <span className={`w-14 h-14 rounded-2xl flex items-center justify-center ${toneStyle[tone]}`} aria-hidden="true">
-        <span className={`material-symbols-outlined text-[28px] ${tone === 'loading' ? 'animate-spin' : ''}`}>{icon ?? toneIcon[tone]}</span>
+        <span className={`material-symbols-outlined text-[28px] ${tone === 'loading' ? 'animate-spin' : ''}`} aria-hidden="true">{icon ?? toneIcon[tone]}</span>
       </span>
       <div className="flex flex-col gap-1.5">
         <h1 className="font-headline text-[18px] font-bold text-[#0b1c30]">{title}</h1>

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatXof } from '@tickethub/shared';
 import { type TripDeparture } from '@/types';
-import { ASSETS } from '@/lib/assets';
 import { catalogApi } from '@/features/catalog/api';
 
 interface SeatSelectionScreenProps {
@@ -18,10 +17,9 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
   isBooking = false,
   actionError = '',
 }) => {
-  const [selectedSeats, setSelectedSeats] = useState<number[]>([14]);
-  const [occupiedSeats, setOccupiedSeats] = useState<number[]>([1, 2, 5, 11, 12, 19, 20, 27, 28, 29, 36]);
-  const [availabilitySource, setAvailabilitySource] = useState<'loading' | 'server' | 'demo'>('loading');
-  const pendingSeats: number[] = [];
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [occupiedSeats, setOccupiedSeats] = useState<number[]>([]);
+  const [availabilitySource, setAvailabilitySource] = useState<'loading' | 'server' | 'error'>('loading');
 
   useEffect(() => {
     let active = true;
@@ -31,22 +29,16 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
         const occupied = result.seats.filter((seat) => seat.status === 'occupied').map((seat) => seat.number);
         setOccupiedSeats(occupied);
         setAvailabilitySource('server');
-        setSelectedSeats((current) => {
-          const stillAvailable = current.filter((seat) => !occupied.includes(seat));
-          if (stillAvailable.length) return stillAvailable;
-          const firstAvailable = result.seats.find((seat) => seat.status === 'available')?.number;
-          return firstAvailable ? [firstAvailable] : [];
-        });
+        setSelectedSeats((current) => current.filter((seat) => !occupied.includes(seat)));
       })
-      .catch(() => { if (active) setAvailabilitySource('demo'); });
+      .catch(() => { if (active) setAvailabilitySource('error'); });
     return () => { active = false; };
   }, [trip.id]);
 
   const toggleSeat = (seatNum: number) => {
-    if (occupiedSeats.includes(seatNum) || pendingSeats.includes(seatNum)) return;
+    if (occupiedSeats.includes(seatNum)) return;
 
     if (selectedSeats.includes(seatNum)) {
-      if (selectedSeats.length === 1) return; // Keep at least one seat
       setSelectedSeats(selectedSeats.filter((s) => s !== seatNum));
     } else {
       if (selectedSeats.length >= 4) return; // Max 4 seats per booking
@@ -57,6 +49,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
   const totalPrice = selectedSeats.length * trip.price;
 
   const getSeatDescription = () => {
+    if (selectedSeats.length === 0) return 'Aucun siège choisi';
     if (selectedSeats.length === 1) {
       const s = selectedSeats[0];
       const row = Math.ceil(s / 4);
@@ -69,7 +62,6 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
   const renderSeatButton = (seatNum: number) => {
     const isSelected = selectedSeats.includes(seatNum);
     const isOccupied = occupiedSeats.includes(seatNum);
-    const isPending = pendingSeats.includes(seatNum);
 
     if (isOccupied) {
       return (
@@ -84,20 +76,6 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
       );
     }
 
-    if (isPending) {
-      return (
-        <button
-          key={seatNum}
-          disabled
-          aria-label={`Siège ${seatNum} en cours de réservation`}
-          className="h-11 rounded-lg bg-[#eff4ff] text-[#565e74] flex items-center justify-center font-headline text-[13px] font-bold cursor-not-allowed select-none relative border border-[#dce9ff]"
-        >
-          <span>{String(seatNum).padStart(2, '0')}</span>
-          <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-[#ff6b00] animate-pulse"></span>
-        </button>
-      );
-    }
-
     if (isSelected) {
       return (
         <button
@@ -108,7 +86,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
           className="h-11 rounded-lg bg-[#ff6b00] text-white font-headline text-[13px] font-bold shadow-md ring-2 ring-[#ff6b00]/40 flex flex-col items-center justify-center transition-all scale-105 cursor-pointer"
         >
           <span className="leading-none">{String(seatNum).padStart(2, '0')}</span>
-          <span className="material-symbols-outlined text-[13px] font-bold">check</span>
+          <span className="material-symbols-outlined text-[13px] font-bold" aria-hidden="true">check</span>
         </button>
       );
     }
@@ -131,13 +109,13 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
       {/* 1. Server-side seat reservation notice */}
       <div className="px-4 pt-2 pb-2">
         <div className="w-full bg-[#eff4ff] text-[#0b1c30] rounded-2xl p-3.5 shadow-sm border border-[#dce9ff] flex items-start gap-2.5">
-          <span className="material-symbols-outlined text-[#216b43] text-[20px]">verified_user</span>
+          <span className="material-symbols-outlined text-[#216b43] text-[20px]" aria-hidden="true">verified_user</span>
           <p className="font-body text-[12px] leading-snug">
             {availabilitySource === 'server'
-              ? 'Disponibilités chargées depuis le serveur. Le verrouillage temporaire commence lorsque vous confirmez la sélection.'
-              : availabilitySource === 'demo'
-                ? 'Mode démonstration : places indicatives uniquement. Une connexion API est requise pour créer le verrouillage serveur.'
-                : 'Vérification des disponibilités auprès du serveur…'}
+              ? 'Choisissez jusqu’à 4 sièges. Ils sont réservés pour vous pendant le paiement, dès que vous confirmez la sélection.'
+              : availabilitySource === 'error'
+                ? 'Les disponibilités n’ont pas pu être chargées. Rechargez la page avant de choisir vos sièges.'
+                : 'Chargement des disponibilités…'}
           </p>
         </div>
       </div>
@@ -149,10 +127,6 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
             <div className="flex items-center gap-2">
               <span className="px-2.5 py-1 bg-[#eff4ff] text-[#0b1c30] font-headline text-[12px] font-bold rounded-lg uppercase tracking-wider border border-[#dce9ff]">
                 {trip.carrier}
-              </span>
-              <span className="px-2 py-0.5 bg-[#a5f0be] text-[#00522e] font-headline text-[10px] rounded-md font-bold flex items-center gap-1">
-                <span className="material-symbols-outlined text-[13px]">mode_fan</span>
-                VIP Climatisé
               </span>
             </div>
             <span className="font-headline text-[17px] text-[#ff6b00] font-bold">
@@ -175,7 +149,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
               <div className="w-full flex items-center gap-1 my-1">
                 <div className="w-2 h-2 rounded-full bg-[#ff6b00]"></div>
                 <div className="h-0.5 flex-1 bg-[#dce9ff]"></div>
-                <span className="material-symbols-outlined text-[#ff6b00] text-[15px]">
+                <span className="material-symbols-outlined text-[#ff6b00] text-[15px]" aria-hidden="true">
                   directions_bus
                 </span>
                 <div className="h-0.5 flex-1 bg-[#dce9ff]"></div>
@@ -190,39 +164,6 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
               </span>
               <span className="font-body text-[12px] text-[#5a4136] truncate">
                 {trip.arrivalCity}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Route Visual Vignettes */}
-      <div className="px-4 py-2">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="relative rounded-xl overflow-hidden shadow-xs h-20 bg-[#eff4ff] border border-[#e2bfb0]/30">
-            <img
-              src={ASSETS.stationAdjame}
-              alt="Gare UTB Adjamé"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/80 via-transparent to-transparent flex items-end p-2">
-              <span className="font-headline text-[11px] text-white font-bold">
-                Gare UTB Adjamé
-              </span>
-            </div>
-          </div>
-
-          <div className="relative rounded-xl overflow-hidden shadow-xs h-20 bg-[#eff4ff] border border-[#e2bfb0]/30">
-            <img
-              src={ASSETS.basiliqueYakro}
-              alt="Yamoussoukro Centre"
-              className="w-full h-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#0b1c30]/80 via-transparent to-transparent flex items-end p-2">
-              <span className="font-headline text-[11px] text-white font-bold">
-                Yamoussoukro Centre
               </span>
             </div>
           </div>
@@ -244,21 +185,15 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-md bg-[#ff6b00] text-white shadow-xs flex items-center justify-center">
-                <span className="material-symbols-outlined text-[13px] font-bold">check</span>
+                <span className="material-symbols-outlined text-[13px] font-bold" aria-hidden="true">check</span>
               </div>
               <span className="font-body text-[12px] text-[#0b1c30] font-bold">Votre choix</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-5 h-5 rounded-md bg-[#dce9ff] text-[#565e74] flex items-center justify-center">
-                <span className="material-symbols-outlined text-[13px]">close</span>
+                <span className="material-symbols-outlined text-[13px]" aria-hidden="true">close</span>
               </div>
               <span className="font-body text-[12px] text-[#565e74]">Occupé</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-5 h-5 rounded-md bg-[#eff4ff] border border-[#dce9ff] text-[#ff6b00] flex items-center justify-center">
-                <span className="material-symbols-outlined text-[12px] animate-spin">sync</span>
-              </div>
-              <span className="font-body text-[12px] text-[#565e74]">En cours (tiers)</span>
             </div>
           </div>
         </div>
@@ -270,12 +205,12 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
           {/* Cockpit / Driver Cabin Header */}
           <div className="bg-[#eff4ff] rounded-2xl p-2.5 mb-3 flex items-center justify-between border border-[#dce9ff]">
             <div className="flex items-center gap-1.5 text-[#565e74]">
-              <span className="material-symbols-outlined text-[18px]">sensor_door</span>
+              <span className="material-symbols-outlined text-[18px]" aria-hidden="true">sensor_door</span>
               <span className="font-headline text-[11px] font-bold">Porte d'accès</span>
             </div>
             <div className="flex items-center gap-1.5 text-[#0b1c30] bg-white px-2.5 py-1 rounded-lg shadow-xs border border-[#dce9ff]">
-              <span className="material-symbols-outlined text-[18px] text-[#ff6b00]">sports_score</span>
-              <span className="font-headline text-[11px] font-bold">Chauffeur UTB</span>
+              <span className="material-symbols-outlined text-[18px] text-[#ff6b00]" aria-hidden="true">sports_score</span>
+              <span className="font-headline text-[11px] font-bold">Chauffeur</span>
             </div>
           </div>
 
@@ -318,7 +253,7 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
           {/* Bus Rear Emergency Exit */}
           <div className="mt-3 pt-2 text-center border-t border-[#eff4ff]">
             <span className="font-headline text-[10px] text-[#5a4136] font-bold uppercase tracking-wider flex items-center justify-center gap-1">
-              <span className="material-symbols-outlined text-[14px] text-[#ba1a1a]">emergency</span>
+              <span className="material-symbols-outlined text-[14px] text-[#ba1a1a]" aria-hidden="true">emergency</span>
               Issue de secours arrière
             </span>
           </div>
@@ -329,14 +264,14 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
       <div className="px-4 py-2">
         <div className="bg-[#eff4ff] rounded-2xl p-3 flex items-center gap-2.5 border border-[#dce9ff]">
           <div className="w-8 h-8 rounded-full bg-[#a5f0be] text-[#00522e] flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-[18px]">verified_user</span>
+            <span className="material-symbols-outlined text-[18px]" aria-hidden="true">verified_user</span>
           </div>
           <div className="flex flex-col">
             <span className="font-headline text-[11px] font-bold text-[#0b1c30]">
-              Paiement Garanti GeniusPay
+              Paiement par GeniusPay
             </span>
             <span className="font-body text-[11px] text-[#565e74]">
-              Wave, Orange Money, MTN MoMo, Moov &amp; CB. Billetterie officielle UTB.
+              Wave, Orange Money, MTN MoMo, Moov Money ou carte bancaire.
             </span>
           </div>
         </div>
@@ -355,9 +290,6 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
               </span>
             </div>
             <div className="flex flex-col items-end">
-              <span className="font-body text-[11px] text-[#216b43] font-bold">
-                Sans frais cachés
-              </span>
               <span className="font-headline text-[18px] text-[#ff6b00] font-bold">
                 {formatXof(totalPrice)} FCFA
               </span>
@@ -367,13 +299,13 @@ export const SeatSelectionScreen: React.FC<SeatSelectionScreenProps> = ({
           {actionError && <p role="alert" className="p-2 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[11px]">{actionError}</p>}
           <button
             type="button"
-            disabled={isBooking || selectedSeats.length === 0}
+            disabled={isBooking || selectedSeats.length === 0 || availabilitySource !== 'server'}
             onClick={() => onContinueToPayment(selectedSeats, totalPrice)}
-            className="w-full min-h-[50px] bg-gradient-to-r from-[#ff6b00] to-[#ff842b] hover:opacity-95 active:scale-[0.98] transition-all text-white font-headline text-[15px] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+            className="w-full min-h-[50px] bg-[#ff6b00] hover:bg-[#e65f00] hover:opacity-95 active:scale-[0.98] transition-all text-white font-headline text-[15px] rounded-xl font-bold flex items-center justify-center gap-2 shadow-md cursor-pointer disabled:opacity-60 disabled:cursor-wait"
           >
-            <span className="material-symbols-outlined text-[20px]">{isBooking ? 'progress_activity' : 'lock'}</span>
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">{isBooking ? 'progress_activity' : 'lock'}</span>
             <span>{isBooking ? 'Verrouillage des sièges…' : 'Continuer vers le paiement'}</span>
-            <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+            <span className="material-symbols-outlined text-[20px]" aria-hidden="true">arrow_forward</span>
           </button>
         </div>
       </div>

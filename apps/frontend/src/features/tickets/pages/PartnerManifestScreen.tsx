@@ -122,7 +122,7 @@ export const PartnerManifestScreen: React.FC = () => {
             <h2 className="font-headline text-[18px] font-bold text-[#0b1c30]">Manifeste passagers</h2>
             <p className="font-body text-[11px] text-[#5a4136]">Données des billets payés enregistrées côté serveur</p>
           </div>
-          <span className="px-2 py-1 rounded-full bg-[#a5f0be] text-[#00522e] font-headline text-[10px] font-bold">{boardedCount} contrôlé{boardedCount === 1 ? '' : 's'}</span>
+          <span className="px-2 py-1 rounded-md bg-[#a5f0be] text-[#00522e] font-headline text-[10px] font-bold">{boardedCount} contrôlé{boardedCount === 1 ? '' : 's'}</span>
         </div>
         <label htmlFor="manifest-trip" className="font-headline text-[11px] font-bold text-[#0b1c30]">Départ à contrôler</label>
         <select id="manifest-trip" value={tripId} onChange={(event) => setTripId(event.target.value)} disabled={loadingTrips || trips.length === 0} className="h-11 w-full px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[12px] text-[#0b1c30]">
@@ -139,13 +139,13 @@ export const PartnerManifestScreen: React.FC = () => {
       </section>
 
       <div className="relative">
-        <span className="material-symbols-outlined absolute left-3 top-3 text-[#5a4136] text-[18px]">search</span>
+        <span className="material-symbols-outlined absolute left-3 top-3 text-[#5a4136] text-[18px]" aria-hidden="true">search</span>
         <input type="search" value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Nom, téléphone, siège ou code billet" className="w-full h-11 pl-9 pr-3 rounded-xl bg-white text-[#0b1c30] placeholder:text-[#5a4136]/70 font-body text-[12px] border border-[#dce9ff] outline-none focus:ring-1 focus:ring-[#ff6b00]" />
       </div>
 
       <div className="flex items-center gap-2">
         {(['all', 'boarded', 'pending'] as const).map((value) => (
-          <button key={value} type="button" onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-full font-headline text-[11px] font-bold ${filter === value ? 'bg-[#ff6b00] text-white' : 'bg-white text-[#0b1c30] border border-[#dce9ff]'}`}>
+          <button key={value} type="button" onClick={() => setFilter(value)} className={`px-3 py-1.5 rounded-md font-headline text-[11px] font-bold ${filter === value ? 'bg-[#ff6b00] text-white' : 'bg-white text-[#0b1c30] border border-[#dce9ff]'}`}>
             {value === 'all' ? 'Tous' : value === 'boarded' ? 'Contrôlés' : 'En attente'}
           </button>
         ))}
@@ -162,7 +162,7 @@ export const PartnerManifestScreen: React.FC = () => {
           const boarded = passenger.status === 'boarded';
           return (
             <article key={passenger.ticketCode} className="p-3 rounded-2xl bg-white border border-[#dce9ff] flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-headline text-[13px] font-bold ${boarded ? 'bg-[#a5f0be] text-[#00522e]' : 'bg-[#eff4ff] text-[#0b1c30]'}`}>{passenger.seatNumber || '—'}</div>
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-headline text-[13px] font-bold ${boarded ? 'bg-[#a5f0be] text-[#00522e]' : 'bg-[#eff4ff] text-[#0b1c30]'}`}>{passenger.seatNumber || '?'}</div>
               <div className="min-w-0 flex-1">
                 <p className="font-headline text-[13px] font-bold text-[#0b1c30] truncate">{passenger.name}</p>
                 <p className="font-body text-[10px] text-[#5a4136] truncate">{passenger.phone} · {passenger.ticketCode}</p>
@@ -177,8 +177,8 @@ export const PartnerManifestScreen: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={handleDownloadCsv} disabled={!passengers.length} className="min-h-[44px] rounded-xl bg-[#eff4ff] border border-[#dce9ff] text-[#0b1c30] font-headline text-[11px] font-bold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"><span className="material-symbols-outlined text-[17px]">download</span>Exporter CSV</button>
-        <button type="button" onClick={handleShare} disabled={!passengers.length} className="min-h-[44px] rounded-xl bg-[#216b43] text-white font-headline text-[11px] font-bold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"><span className="material-symbols-outlined text-[17px]">share</span>Partager le bilan</button>
+        <button type="button" onClick={handleDownloadCsv} disabled={!passengers.length} className="min-h-[44px] rounded-xl bg-[#eff4ff] border border-[#dce9ff] text-[#0b1c30] font-headline text-[11px] font-bold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"><span className="material-symbols-outlined text-[17px]" aria-hidden="true">download</span>Exporter CSV</button>
+        <button type="button" onClick={handleShare} disabled={!passengers.length} className="min-h-[44px] rounded-xl bg-[#216b43] text-white font-headline text-[11px] font-bold flex items-center justify-center gap-1 disabled:opacity-50 cursor-pointer"><span className="material-symbols-outlined text-[17px]" aria-hidden="true">share</span>Partager le bilan</button>
       </div>
     </div>
   );
