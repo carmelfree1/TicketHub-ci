@@ -15,7 +15,7 @@ export function useCurrentScreen(): AppScreen {
  */
 export function useScreenNavigation() {
   const navigate = useNavigate();
-  const { user, openProfile, refreshTickets } = useSession();
+  const { accounts, openProfile, refreshTickets } = useSession();
   const { draft, digitalTicket } = useBookingFlow();
 
   return useCallback((screen: AppScreen) => {
@@ -31,13 +31,12 @@ export function useScreenNavigation() {
       case 'payment-result': return go(paths.paymentReturn);
       case 'digital-pass': return go(digitalTicket ? paths.ticket(digitalTicket.ticketCode) : paths.wallet);
       case 'tickets-wallet':
-        if (user?.role === 'partner') return go(paths.partner);
         refreshTickets();
         return go(paths.wallet);
       case 'partner-dashboard':
       case 'partner-scanner':
       case 'partner-manifest': {
-        if (user?.role !== 'partner') {
+        if (!accounts.partner) {
           openProfile();
           return;
         }
@@ -49,7 +48,7 @@ export function useScreenNavigation() {
         return go(target);
       }
     }
-  }, [navigate, user, openProfile, refreshTickets, draft.trip, draft.event, draft.bookingId, digitalTicket]);
+  }, [navigate, accounts.partner, openProfile, refreshTickets, draft.trip, draft.event, draft.bookingId, digitalTicket]);
 }
 
 export { paths, screenFromPath };

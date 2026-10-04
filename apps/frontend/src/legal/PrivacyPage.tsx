@@ -65,7 +65,7 @@ export function Component() {
       <Section title="Cookies et stockage sur votre appareil">
         <List
           items={[
-            <>Un cookie de session, <code>tickethub_session</code>, strictement nécessaire à la connexion. Il n’est lisible que par le serveur et ne sert à aucun suivi.</>,
+            <>Un cookie de session, <code>tickethub_session</code> pour un compte client, et un second, <code>tickethub_partner_session</code>, si vous êtes aussi connecté avec un compte partenaire. Ils sont strictement nécessaires à la connexion, ne sont lisibles que par le serveur et ne servent à aucun suivi.</>,
             'Une copie de vos billets, enregistrée dans le navigateur pour que vous puissiez les présenter sans réseau. Elle est supprimée quand vous vous déconnectez ; ne la conservez pas sur un appareil partagé.',
           ]}
         />

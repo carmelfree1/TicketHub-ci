@@ -22,21 +22,41 @@ function readCookie(header: string | undefined, name: string): string | undefine
   return undefined;
 }
 
-function extractToken(request: Request): string | undefined {
+export type Account = 'traveler' | 'partner';
+
+/**
+ * Which session a request acts as. The browser keeps one cookie per kind of account. The web app says which one it
+ * means with `X-Account` on the shared authentication routes; partner endpoints always mean the partner account.
+ */
+export function accountFor(request: Request): Account {
+  const header = request.get('x-account');
+  if (header === 'partner' || header === 'traveler') return header;
+  return request.originalUrl.startsWith('/api/partner') ? 'partner' : 'traveler';
+}
+
+function extractToken(request: Request, account: Account): string | undefined {
   const authorization = request.get('authorization');
   if (authorization?.startsWith('Bearer ')) return authorization.slice(7).trim();
-  return readCookie(request.get('cookie'), appConfig.cookieName);
+  const cookies = request.get('cookie');
+  const own = readCookie(cookies, appConfig.cookieNames[account]);
+  // On partner endpoints a customer session is still read, so a customer is told "forbidden" rather than "sign in".
+  if (!own && account === 'partner' && !request.get('x-account')) return readCookie(cookies, appConfig.cookieNames.traveler);
+  return own;
 }
 
 export const authenticate: RequestHandler = (request, _response, next) => {
-  const token = extractToken(request);
+  const account = accountFor(request);
+  request.account = account;
+  const token = extractToken(request, account);
   if (!token) { next(); return; }
   try {
     const claims = verifyJwt(token);
     const tokenHash = createHash('sha256').update(token).digest('hex');
     void prisma.session.findUnique({ where: { tokenHash }, include: { user: true } })
       .then((session) => {
-        if (!session || session.expiresAt.getTime() <= Date.now() || session.userId !== claims.sub) {
+        // A partner session presented as the customer account (or the reverse) is not valid for that account.
+        const roleMismatch = session !== null && account === 'traveler' && session.user.role !== 'traveler';
+        if (!session || roleMismatch || session.expiresAt.getTime() <= Date.now() || session.userId !== claims.sub) {
           // Treat stale/revoked credentials as anonymous on public routes (notably login).
           next();
           return;

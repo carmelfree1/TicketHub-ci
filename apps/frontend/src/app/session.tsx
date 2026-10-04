@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useLocation } from 'react-router';
 import { type AuthUser } from '@/types';
 import { authApi } from '@/features/auth/api';
 import { ticketsApi } from '@/features/tickets/api';
 import { clearOfflineTickets } from '@/lib/offlineTickets';
-import type { SecurityStatus } from '@/services/api';
+import type { Account, SecurityStatus } from '@/services/api';
 
 interface Credentials {
   fullName?: string;
@@ -12,12 +13,13 @@ interface Credentials {
   partnerInviteCode?: string;
 }
 
-interface SessionValue {
-  /** False until the first /auth/me answer, so route guards do not redirect before the session is known. */
+type Slots<T> = Record<Account, T | null>;
+
+interface RawSession {
   ready: boolean;
-  user: AuthUser | null;
-  security: SecurityStatus | null;
-  setSecurity: (security: SecurityStatus) => void;
+  accounts: Slots<AuthUser>;
+  securities: Slots<SecurityStatus>;
+  setSecurity: (account: Account, security: SecurityStatus) => void;
   profileOpen: boolean;
   openProfile: () => void;
   closeProfile: () => void;
@@ -26,35 +28,41 @@ interface SessionValue {
   /** Resolves with the signed-in user, or with a challenge when a second factor is still required. */
   authenticate: (mode: 'login' | 'register', credentials: Credentials) => Promise<{ user: AuthUser } | { challengeToken: string }>;
   verifyMfa: (challengeToken: string, code: string) => Promise<AuthUser>;
-  logout: () => Promise<void>;
+  logout: (account: Account) => Promise<void>;
 }
 
-const SessionContext = createContext<SessionValue | null>(null);
+const empty = (): Slots<never> => ({ traveler: null, partner: null });
+const SessionContext = createContext<RawSession | null>(null);
 
+/** A customer and a partner can be signed in at once; each has its own cookie and its own slot here. */
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [security, setSecurity] = useState<SecurityStatus | null>(null);
+  const [accounts, setAccounts] = useState<Slots<AuthUser>>(empty());
+  const [securities, setSecurities] = useState<Slots<SecurityStatus>>(empty());
   const [profileOpen, setProfileOpen] = useState(false);
   const [activeTicketCount, setActiveTicketCount] = useState(0);
   const [ticketRefreshKey, setTicketRefreshKey] = useState(0);
 
-  useEffect(() => {
-    let active = true;
-    authApi.me()
-      .then((session) => {
-        if (!active) return;
-        setUser(session.user);
-        setSecurity(session.security);
-        if (!session.user) void clearOfflineTickets();
-      })
-      .catch(() => { if (active) { setUser(null); setSecurity(null); } })
-      .finally(() => { if (active) setReady(true); });
-    return () => { active = false; };
+  const loadAccount = useCallback(async (account: Account) => {
+    const session = await authApi.me(account).catch(() => ({ user: null, security: null }));
+    setAccounts((current) => ({ ...current, [account]: session.user }));
+    setSecurities((current) => ({ ...current, [account]: session.security }));
+    return session;
   }, []);
 
   useEffect(() => {
-    if (!user || user.role !== 'traveler') {
+    let active = true;
+    Promise.all([loadAccount('traveler'), loadAccount('partner')]).then(([traveler]) => {
+      if (!active) return;
+      if (!traveler.user) void clearOfflineTickets();
+      setReady(true);
+    });
+    return () => { active = false; };
+  }, [loadAccount]);
+
+  const traveler = accounts.traveler;
+  useEffect(() => {
+    if (!traveler) {
       setActiveTicketCount(0);
       return;
     }
@@ -63,18 +71,19 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       .then((tickets) => { if (active) setActiveTicketCount(tickets.filter((ticket) => ticket.status === 'active').length); })
       .catch(() => { if (active) setActiveTicketCount(0); });
     return () => { active = false; };
-  }, [user, ticketRefreshKey]);
+  }, [traveler, ticketRefreshKey]);
 
-  const completeSignIn = useCallback(async (next: AuthUser) => {
-    setUser(next);
-    setSecurity((await authApi.me().catch(() => null))?.security ?? null);
-  }, []);
+  const completeSignIn = useCallback(async (user: AuthUser) => {
+    const account: Account = user.role === 'partner' ? 'partner' : 'traveler';
+    setAccounts((current) => ({ ...current, [account]: user }));
+    await loadAccount(account);
+  }, [loadAccount]);
 
-  const value = useMemo<SessionValue>(() => ({
+  const value = useMemo<RawSession>(() => ({
     ready,
-    user,
-    security,
-    setSecurity,
+    accounts,
+    securities,
+    setSecurity: (account, security) => setSecurities((current) => ({ ...current, [account]: security })),
     profileOpen,
     openProfile: () => setProfileOpen(true),
     closeProfile: () => setProfileOpen(false),
@@ -101,20 +110,34 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       await completeSignIn(verified);
       return verified;
     },
-    async logout() {
-      await authApi.logout();
-      // Cached tickets belong to the account that just left this device.
-      await clearOfflineTickets();
-      setUser(null);
-      setSecurity(null);
+    async logout(account) {
+      await authApi.logout(account);
+      // Cached tickets belong to the customer account that just left this device.
+      if (account === 'traveler') await clearOfflineTickets();
+      setAccounts((current) => ({ ...current, [account]: null }));
+      setSecurities((current) => ({ ...current, [account]: null }));
     },
-  }), [ready, user, security, profileOpen, activeTicketCount, completeSignIn]);
+  }), [ready, accounts, securities, profileOpen, activeTicketCount, completeSignIn]);
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;
 }
 
-export function useSession(): SessionValue {
-  const value = useContext(SessionContext);
-  if (!value) throw new Error('useSession must be used inside SessionProvider');
-  return value;
+/** The area of the site the person is looking at decides which of the two accounts is "the" current one. */
+export function areaForPath(pathname: string): Account {
+  return pathname === '/partenaire' || pathname.startsWith('/partenaire/') ? 'partner' : 'traveler';
+}
+
+export function useSession() {
+  const raw = useContext(SessionContext);
+  if (!raw) throw new Error('useSession must be used inside SessionProvider');
+  const { pathname } = useLocation();
+  const area = areaForPath(pathname);
+  return {
+    ...raw,
+    area,
+    /** Account of the current area: the partner in /partenaire, the customer everywhere else. */
+    user: raw.accounts[area],
+    security: raw.securities[area],
+    hasPartnerAccount: raw.accounts.partner !== null,
+  };
 }

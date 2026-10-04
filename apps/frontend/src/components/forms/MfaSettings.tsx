@@ -1,9 +1,10 @@
 import { useState, type FormEvent } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { authApi } from '@/features/auth/api';
-import type { SecurityStatus } from '@/services/api';
+import type { Account, SecurityStatus } from '@/services/api';
 
 interface MfaSettingsProps {
+  account: Account;
   security: SecurityStatus | null;
   onChange: (security: SecurityStatus) => void;
 }
@@ -17,7 +18,7 @@ const primaryButton =
 const secondaryButton =
   'min-h-[44px] px-4 rounded-xl bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60';
 
-export function MfaSettings({ security, onChange }: MfaSettingsProps) {
+export function MfaSettings({ account, security, onChange }: MfaSettingsProps) {
   const [step, setStep] = useState<Step>('idle');
   const [setup, setSetup] = useState<{ secret: string; otpauthUri: string } | null>(null);
   const [backupCodes, setBackupCodes] = useState<string[]>([]);
@@ -42,7 +43,7 @@ export function MfaSettings({ security, onChange }: MfaSettingsProps) {
 
   const startEnrollment = () =>
     run(async () => {
-      setSetup(await authApi.mfaSetup());
+      setSetup(await authApi.mfaSetup(account));
       setCode('');
       setStep('enrolling');
     });
@@ -50,7 +51,7 @@ export function MfaSettings({ security, onChange }: MfaSettingsProps) {
   const confirmEnrollment = (event: FormEvent) => {
     event.preventDefault();
     void run(async () => {
-      const result = await authApi.mfaEnable(code.trim());
+      const result = await authApi.mfaEnable(code.trim(), account);
       setBackupCodes(result.backupCodes);
       setSetup(null);
       setCode('');
@@ -62,7 +63,7 @@ export function MfaSettings({ security, onChange }: MfaSettingsProps) {
   const confirmDisable = (event: FormEvent) => {
     event.preventDefault();
     void run(async () => {
-      await authApi.mfaDisable({ password, code: code.trim() });
+      await authApi.mfaDisable({ password, code: code.trim() }, account);
       setPassword('');
       setCode('');
       setStep('idle');
@@ -71,10 +72,10 @@ export function MfaSettings({ security, onChange }: MfaSettingsProps) {
   };
 
   return (
-    <section aria-labelledby="mfa-title" className="flex flex-col gap-3 p-3 rounded-2xl border border-[#dce9ff]">
+    <section aria-label={account === 'partner' ? 'Double authentification du compte partenaire' : 'Double authentification du compte client'} className="flex flex-col gap-3 p-3 rounded-2xl border border-[#dce9ff]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 id="mfa-title" className="font-headline text-[13px] font-bold text-[#0b1c30]">Double authentification</h3>
+          <h3 className="font-headline text-[13px] font-bold text-[#0b1c30]">Double authentification</h3>
           <p className="font-body text-[11px] text-[#5a4136]">
             {security.mfaEnabled
               ? 'Active. Un code de votre application d’authentification est demandé à chaque connexion.'

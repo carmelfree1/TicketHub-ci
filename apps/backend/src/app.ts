@@ -52,7 +52,7 @@ export function createApp() {
         return;
       }
       response.setHeader('Access-Control-Allow-Methods', 'GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS');
-      response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-Id');
+      response.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Request-Id, X-Account');
       response.status(204).end();
       return;
     }

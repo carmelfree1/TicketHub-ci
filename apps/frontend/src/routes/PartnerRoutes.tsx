@@ -12,10 +12,9 @@ import { useSession } from '@/app/session';
  * the role (and MFA enrolment) on the server.
  */
 export function PartnerGuard() {
-  const { ready, user, openProfile } = useSession();
+  const { ready, accounts, openProfile } = useSession();
   if (!ready) return <StatusPanel tone="loading" title="Vérification de votre session" />;
-  if (!user) return <UnauthorizedPage onSignIn={openProfile} />;
-  if (user.role !== 'partner') return <UnauthorizedPage />;
+  if (!accounts.partner) return <UnauthorizedPage onSignIn={openProfile} />;
   return <Outlet />;
 }
 

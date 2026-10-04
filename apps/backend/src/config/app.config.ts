@@ -11,7 +11,8 @@ export const appConfig = {
   webhookLimit: '128kb',
   appUrl: env.APP_URL.replace(/\/$/, ''),
   webOrigin: new URL(env.WEB_ORIGIN).origin,
-  cookieName: 'tickethub_session',
+  // One cookie per kind of account, so a customer and a partner can be signed in at the same time in one browser.
+  cookieNames: { traveler: 'tickethub_session', partner: 'tickethub_partner_session' },
   cookieSecure: env.NODE_ENV === 'production',
   sessionTtlSeconds: env.SESSION_TTL_DAYS * 24 * 60 * 60,
   authRateLimit: { windowMs: 15 * 60 * 1000, limit: env.AUTH_RATE_LIMIT_MAX },

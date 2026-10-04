@@ -5,8 +5,8 @@ import { requestContext } from '../audit/audit.service.js';
 import { authService, isMfaRequiredFor } from './auth.service.js';
 import { mfaService } from './mfa.service.js';
 
-function attachSessionCookie(response: Response, token: string): void {
-  response.cookie(appConfig.cookieName, token, {
+function attachSessionCookie(response: Response, token: string, role: 'traveler' | 'partner'): void {
+  response.cookie(appConfig.cookieNames[role], token, {
     httpOnly: true,
     secure: appConfig.cookieSecure,
     sameSite: 'lax',
@@ -18,7 +18,7 @@ function attachSessionCookie(response: Response, token: string): void {
 export const authController = {
   register: (async (request, response) => {
     const result = await authService.register(request.body, requestContext(request));
-    attachSessionCookie(response, result.token);
+    attachSessionCookie(response, result.token, result.user.role);
     response.status(201).json({ user: result.user });
   }) as RequestHandler,
 
@@ -28,13 +28,13 @@ export const authController = {
       response.json({ mfaRequired: true, challengeToken: result.challengeToken });
       return;
     }
-    attachSessionCookie(response, result.token);
+    attachSessionCookie(response, result.token, result.user.role);
     response.json({ user: result.user });
   }) as RequestHandler,
 
   loginMfa: (async (request, response) => {
     const result = await authService.completeMfaLogin(request.body.challengeToken, request.body.code, requestContext(request));
-    attachSessionCookie(response, result.token);
+    attachSessionCookie(response, result.token, result.user.role);
     response.json({ user: result.user });
   }) as RequestHandler,
 
@@ -48,7 +48,7 @@ export const authController = {
 
   logout: (async (request, response) => {
     await authService.logout(request.sessionTokenHash, request.authUser?.id, requestContext(request));
-    response.clearCookie(appConfig.cookieName, {
+    response.clearCookie(appConfig.cookieNames[request.account ?? 'traveler'], {
       httpOnly: true,
       secure: appConfig.cookieSecure,
       sameSite: 'lax',

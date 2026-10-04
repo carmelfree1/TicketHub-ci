@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router';
 import { type AppScreen, type AuthUser } from '@/types';
-import type { SecurityStatus } from '@/services/api';
-import { MfaSettings } from './MfaSettings';
+import type { Account, SecurityStatus } from '@/services/api';
+import { AccountsPanel } from './AccountsPanel';
 
 interface Credentials {
   fullName?: string;
@@ -14,20 +14,22 @@ interface Credentials {
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: AuthUser | null;
-  security: SecurityStatus | null;
-  onSecurityChange: (security: SecurityStatus) => void;
+  accounts: Record<Account, AuthUser | null>;
+  securities: Record<Account, SecurityStatus | null>;
+  area: Account;
+  onSecurityChange: (account: Account, security: SecurityStatus) => void;
   onAuthenticate: (mode: 'login' | 'register', credentials: Credentials) => Promise<{ challengeToken: string } | void>;
   onVerifyMfa: (challengeToken: string, code: string) => Promise<void>;
-  onLogout: () => Promise<void>;
+  onLogout: (account: Account) => Promise<void>;
   onNavigateScreen: (screen: AppScreen) => void;
 }
 
 export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
   onClose,
-  user,
-  security,
+  accounts,
+  securities,
+  area,
   onSecurityChange,
   onAuthenticate,
   onVerifyMfa,
@@ -43,7 +45,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [mfaCode, setMfaCode] = useState('');
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [isBusy, setIsBusy] = useState(false);
+  const [addingAccount, setAddingAccount] = useState<Account | null>(null);
   const [error, setError] = useState('');
+
+  const hasAnyAccount = accounts.traveler !== null || accounts.partner !== null;
+  const showAccounts = hasAnyAccount && addingAccount === null && !challengeToken;
 
   if (!isOpen) return null;
 
@@ -63,6 +69,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         setChallengeToken(outcome.challengeToken);
         return;
       }
+      setAddingAccount(null);
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Connexion impossible. Réessayez.');
@@ -79,6 +86,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
       await onVerifyMfa(challengeToken, mfaCode.trim());
       setChallengeToken('');
       setMfaCode('');
+      setAddingAccount(null);
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Vérification impossible. Réessayez.');
@@ -108,10 +116,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 id="profile-modal-title" className="font-headline text-[16px] font-bold text-[#0b1c30]">
-              {user ? 'Mon compte TicketHub' : 'Connexion / inscription'}
+              {hasAnyAccount && addingAccount === null ? 'Mes comptes TicketHub' : addingAccount === 'partner' ? 'Compte partenaire' : addingAccount === 'traveler' ? 'Compte client' : 'Connexion / inscription'}
             </h2>
             <p className="font-body text-[11px] text-[#5a4136]">
-              {user ? 'Profil et accès selon vos autorisations.' : 'Connectez-vous pour réserver et retrouver vos billets.'}
+              {hasAnyAccount && addingAccount === null ? 'Vous pouvez être connecté en même temps comme client et comme partenaire.' : 'Connectez-vous pour réserver et retrouver vos billets.'}
             </p>
           </div>
           <button
@@ -124,52 +132,16 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </button>
         </div>
 
-        {user ? (
-          <>
-            <div className="flex items-center gap-3 p-3 rounded-2xl bg-[#eff4ff] border border-[#dce9ff]">
-              <div className="w-12 h-12 rounded-full bg-[#ffdbcc] text-[#a04100] flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-[26px]" aria-hidden="true">
-                  {user.role === 'partner' ? 'badge' : 'person'}
-                </span>
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="font-headline text-[15px] font-bold text-[#0b1c30] truncate">{user.fullName}</span>
-                <span className="font-body text-[12px] text-[#5a4136]">{user.phone}</span>
-                <span className="font-headline text-[10px] text-[#00522e] font-bold uppercase mt-0.5">
-                  {user.role === 'partner' ? 'Compte partenaire authentifié' : 'Compte voyageur'}
-                </span>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => navigate(user.role === 'partner' ? 'partner-dashboard' : 'tickets-wallet')} className="p-3 rounded-2xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#dce9ff]">
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{user.role === 'partner' ? 'analytics' : 'confirmation_number'}</span>
-                {user.role === 'partner' ? 'Espace partenaire' : 'Mes billets'}
-              </button>
-              <button type="button" onClick={() => navigate('explorer')} className="p-3 rounded-2xl bg-[#eff4ff] text-[#0b1c30] font-headline text-[12px] font-bold flex items-center justify-center gap-1.5 cursor-pointer hover:bg-[#dce9ff]">
-                <span className="material-symbols-outlined text-[18px]" aria-hidden="true">explore</span>
-                Explorer
-              </button>
-            </div>
-            <MfaSettings security={security} onChange={onSecurityChange} />
-            <button
-              type="button"
-              onClick={async () => {
-                setIsBusy(true);
-                try {
-                  await onLogout();
-                  setError('');
-                } catch (cause) {
-                  setError(cause instanceof Error ? cause.message : 'Déconnexion impossible.');
-                } finally {
-                  setIsBusy(false);
-                }
-              }}
-              disabled={isBusy}
-              className="w-full py-2.5 rounded-xl bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60"
-            >
-              {isBusy ? 'Veuillez patienter…' : 'Se déconnecter'}
-            </button>
-          </>
+        {showAccounts ? (
+          <AccountsPanel
+            accounts={accounts}
+            securities={securities}
+            area={area}
+            onSecurityChange={onSecurityChange}
+            onLogout={onLogout}
+            onNavigate={navigate}
+            onSignInAs={(account) => { setAddingAccount(account); setMode('login'); setError(''); }}
+          />
         ) : challengeToken ? (
           <form onSubmit={submitMfa} className="flex flex-col gap-3">
             <p className="font-body text-[12px] text-[#0b1c30]">
@@ -197,6 +169,14 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
           </form>
         ) : (
           <>
+            {hasAnyAccount && (
+              <button type="button" onClick={() => { setAddingAccount(null); setChallengeToken(''); setError(''); }} className="self-start font-headline text-[12px] font-bold text-[#a04100] underline cursor-pointer">
+                Retour à mes comptes
+              </button>
+            )}
+            {addingAccount === 'partner' && (
+              <p className="font-body text-[12px] text-[#5a4136]">Connectez-vous avec votre compte partenaire. Votre compte client reste connecté.</p>
+            )}
             <div className="grid grid-cols-2 p-1 rounded-xl bg-[#eff4ff] gap-1">
               <button type="button" onClick={() => { setMode('login'); setError(''); }} className={`py-2 rounded-lg font-headline text-[12px] font-bold ${mode === 'login' ? 'bg-white shadow-xs text-[#0b1c30]' : 'text-[#5a4136]'}`}>Connexion</button>
               <button type="button" onClick={() => { setMode('register'); setError(''); }} className={`py-2 rounded-lg font-headline text-[12px] font-bold ${mode === 'register' ? 'bg-white shadow-xs text-[#0b1c30]' : 'text-[#5a4136]'}`}>Créer un compte</button>

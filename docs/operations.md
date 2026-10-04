@@ -51,3 +51,9 @@ What the gateway documents (checked on pay.genius.ci/doc): webhooks signed with 
 - **API rate limit.** `API_RATE_LIMIT_MAX` (default 600 per minute per address) is deliberately generous because many customers share one address behind a mobile carrier. nginx adds its own limits on login and the API.
 - **Legal identity and release builds.** See `docs/go-live.md`.
 
+## Customer and partner signed in together
+
+A browser keeps one session cookie per kind of account: `tickethub_session` (customer) and `tickethub_partner_session` (partner). Signing in sets the cookie that matches the account's role, so the second sign-in never replaces the first, and signing out clears only that account's cookie and revokes only that session.
+
+The API decides which session a request acts as: `/api/partner/*` always uses the partner session (a customer cookie alone still reaches those routes and is answered `403`), and the shared routes under `/api/auth/*` follow the `X-Account: traveler|partner` header that the web app sends. A session presented for the wrong kind of account is ignored. The web app treats `/partenaire/*` as the partner area and everything else as the customer area, and the account dialog lists both accounts. Sessions issued before this change were stored under `tickethub_session` whatever the role; partner sessions of that kind are no longer accepted, so partners sign in once more after the update.
+

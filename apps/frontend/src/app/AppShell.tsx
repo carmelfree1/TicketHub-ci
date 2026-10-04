@@ -30,7 +30,7 @@ export function AppShell() {
       <div className="mx-auto w-full min-h-screen max-w-[1440px] flex flex-col bg-[#f8f9ff] relative lg:border-x lg:border-[#dce9ff]">
         <Header
           currentScreen={screen}
-          userRole={session.user?.role ?? 'traveler'}
+          userRole={session.area}
           user={session.user}
           onNavigate={goToScreen}
           onOpenProfile={session.openProfile}
@@ -47,7 +47,8 @@ export function AppShell() {
 
         <BottomNav
           currentScreen={screen}
-          userRole={session.user?.role ?? 'traveler'}
+          userRole={session.area}
+          partnerAvailable={session.hasPartnerAccount}
           onNavigate={goToScreen}
           onOpenProfile={session.openProfile}
           activeTicketCount={session.activeTicketCount}
@@ -56,8 +57,9 @@ export function AppShell() {
         <ProfileModal
           isOpen={session.profileOpen}
           onClose={session.closeProfile}
-          user={session.user}
-          security={session.security}
+          accounts={session.accounts}
+          securities={session.securities}
+          area={session.area}
           onSecurityChange={session.setSecurity}
           onAuthenticate={async (mode, credentials) => {
             const outcome = await session.authenticate(mode, credentials);
@@ -68,10 +70,11 @@ export function AppShell() {
             const user = await session.verifyMfa(challengeToken, code);
             if (user.role === 'partner') navigate(paths.partner);
           }}
-          onLogout={async () => {
-            await session.logout();
-            reset();
-            navigate(paths.home);
+          onLogout={async (account) => {
+            await session.logout(account);
+            if (account === 'traveler') reset();
+            // Signing out of the account of the area you are in leaves that area; the other account stays signed in.
+            if (account === session.area) navigate(paths.home);
           }}
           onNavigateScreen={goToScreen}
         />

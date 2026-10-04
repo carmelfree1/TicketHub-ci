@@ -69,7 +69,11 @@ export async function startE2eContext(databaseUrl: string) {
   async function api(path: string, init: RequestInit = {}, session?: Session): Promise<Response> {
     const headers = new Headers(init.headers);
     if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
-    if (session) headers.set('Cookie', session.cookie);
+    if (session) {
+      headers.set('Cookie', session.cookie);
+      // The web app names the account it means on the shared authentication routes; do the same for a partner session.
+      if (session.cookie.startsWith('tickethub_partner_session=') && !headers.has('X-Account')) headers.set('X-Account', 'partner');
+    }
     return fetch(`${baseUrl}${path}`, { ...init, headers });
   }
 

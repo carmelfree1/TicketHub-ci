@@ -25,8 +25,15 @@ interface ApiErrorResponse {
   error?: { code?: string; message?: string };
 }
 
-async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
+export type Account = 'traveler' | 'partner';
+
+/**
+ * `account` names which of the two simultaneous sessions a shared authentication route should act on. Partner
+ * endpoints (`/partner/...`) always use the partner session, so they need no hint.
+ */
+async function request<T>(path: string, init: RequestInit = {}, account?: Account): Promise<T> {
   const headers = new Headers(init.headers);
+  if (account) headers.set('X-Account', account);
   if (init.body && !headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   const response = await fetch(`${API_BASE_URL}${path}`, {
     ...init,
@@ -132,8 +139,8 @@ export interface PartnerStats {
 }
 
 export const api = {
-  async me(): Promise<{ user: AuthUser | null; security: SecurityStatus | null }> {
-    return request<{ user: AuthUser | null; security: SecurityStatus | null }>('/auth/me');
+  async me(account: Account): Promise<{ user: AuthUser | null; security: SecurityStatus | null }> {
+    return request<{ user: AuthUser | null; security: SecurityStatus | null }>('/auth/me', {}, account);
   },
 
   async login(input: { phone: string; password: string }): Promise<LoginOutcome> {
@@ -151,19 +158,19 @@ export const api = {
     return result.user;
   },
 
-  async mfaSetup(): Promise<{ secret: string; otpauthUri: string }> {
-    return (await request<{ data: { secret: string; otpauthUri: string } }>('/auth/mfa/setup', { method: 'POST' })).data;
+  async mfaSetup(account: Account): Promise<{ secret: string; otpauthUri: string }> {
+    return (await request<{ data: { secret: string; otpauthUri: string } }>('/auth/mfa/setup', { method: 'POST' }, account)).data;
   },
 
-  async mfaEnable(code: string): Promise<{ backupCodes: string[] }> {
+  async mfaEnable(code: string, account: Account): Promise<{ backupCodes: string[] }> {
     return (await request<{ data: { backupCodes: string[] } }>('/auth/mfa/enable', {
       method: 'POST',
       body: JSON.stringify({ code }),
-    })).data;
+    }, account)).data;
   },
 
-  async mfaDisable(input: { password: string; code: string }): Promise<void> {
-    await request<void>('/auth/mfa/disable', { method: 'POST', body: JSON.stringify(input) });
+  async mfaDisable(input: { password: string; code: string }, account: Account): Promise<void> {
+    await request<void>('/auth/mfa/disable', { method: 'POST', body: JSON.stringify(input) }, account);
   },
 
   async register(input: { fullName: string; phone: string; password: string; partnerInviteCode?: string }): Promise<AuthUser> {
@@ -175,8 +182,8 @@ export const api = {
     return result.user;
   },
 
-  async logout(): Promise<void> {
-    await request<void>('/auth/logout', { method: 'POST' });
+  async logout(account: Account): Promise<void> {
+    await request<void>('/auth/logout', { method: 'POST' }, account);
   },
 
   async profile(): Promise<AuthUser> {

@@ -6,6 +6,8 @@ interface BottomNavProps {
   userRole: UserRole;
   onNavigate: (screen: AppScreen) => void;
   onOpenProfile: () => void;
+  /** A partner account is signed in next to the customer account. */
+  partnerAvailable?: boolean;
   activeTicketCount?: number;
 }
 
@@ -20,7 +22,7 @@ interface Item {
 // Checkout and ticket display are full focus flows: no navigation competes with the primary action.
 const focusScreens: AppScreen[] = ['payment', 'payment-result', 'digital-pass', 'event-selection', 'seat-selection'];
 
-export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, userRole, onNavigate, onOpenProfile, activeTicketCount = 0 }) => {
+export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, userRole, onNavigate, onOpenProfile, partnerAvailable = false, activeTicketCount = 0 }) => {
   if (focusScreens.includes(currentScreen)) return null;
 
   const items: Item[] =
@@ -35,6 +37,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({ currentScreen, userRole, o
       : [
           { label: 'Catalogue', icon: 'explore', screen: 'explorer' },
           { label: 'Billets', icon: 'confirmation_number', screen: 'tickets-wallet', badge: activeTicketCount },
+          ...(partnerAvailable ? [{ label: 'Partenaire', icon: 'badge', screen: 'partner-dashboard' as AppScreen }] : []),
           { label: 'Compte', icon: 'person', onSelect: onOpenProfile },
         ];
 
