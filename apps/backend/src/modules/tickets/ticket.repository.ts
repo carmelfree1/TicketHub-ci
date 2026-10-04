@@ -1,15 +1,31 @@
-import { prisma } from '../../config/database.js';
+import type { Prisma } from '../../generated/prisma/client.js';
+import { prisma, type DbTransaction } from '../../config/database.js';
 import { paymentMethodLabel } from '../../integrations/geniuspay/geniuspay.mapper.js';
 
-const db = prisma as any;
+const db = prisma;
 
-function expiryForBooking(booking: any): Date {
+const ticketIncludes = {
+  booking: {
+    include: {
+      user: true,
+      payment: true,
+      busTrip: true,
+      event: true,
+      ticketCategory: true,
+    },
+  },
+} satisfies Prisma.TicketInclude;
+
+type TicketRow = Prisma.TicketGetPayload<{ include: typeof ticketIncludes }>;
+type BookingRow = TicketRow['booking'];
+
+function expiryForBooking(booking: BookingRow): Date {
   const startsAt = booking.productType === 'transport' ? booking.busTrip?.departAt : booking.event?.startsAt;
   const duration = booking.productType === 'transport' ? 24 : 12;
   return new Date((startsAt?.getTime?.() ?? Date.now()) + duration * 60 * 60 * 1000);
 }
 
-function ticketDto(ticket: any) {
+function ticketDto(ticket: TicketRow) {
   const booking = ticket.booking;
   const event = booking.event;
   const trip = booking.busTrip;
@@ -45,17 +61,6 @@ function ticketDto(ticket: any) {
   };
 }
 
-const ticketIncludes = {
-  booking: {
-    include: {
-      user: true,
-      payment: true,
-      busTrip: true,
-      event: true,
-      ticketCategory: true,
-    },
-  },
-};
 
 export const ticketRepository = {
   async listUserTickets(userId: string) {
@@ -64,7 +69,7 @@ export const ticketRepository = {
       include: ticketIncludes,
       orderBy: [{ createdAt: 'desc' }, { ordinal: 'asc' }],
     });
-    return tickets.map((ticket: any) => ({
+    return tickets.map((ticket) => ({
       ...ticketDto(ticket),
       qrPayload: '',
     }));
@@ -76,7 +81,7 @@ export const ticketRepository = {
       include: ticketIncludes,
       orderBy: [{ booking: { createdAt: 'asc' } }, { ordinal: 'asc' }],
     });
-    return tickets.map((ticket: any) => {
+    return tickets.map((ticket) => {
       const dto = ticketDto(ticket);
       return {
         ticketCode: dto.ticketCode,
@@ -92,8 +97,8 @@ export const ticketRepository = {
     });
   },
 
-  async findForScan(tx: any, ticketId: string) {
-    const [locked] = await tx.$queryRaw`SELECT id FROM tickets WHERE id = ${ticketId} FOR UPDATE`;
+  async findForScan(tx: DbTransaction, ticketId: string) {
+    const [locked] = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM tickets WHERE id = ${ticketId} FOR UPDATE`;
     if (!locked) return null;
     return tx.ticket.findUnique({ where: { id: ticketId }, include: ticketIncludes });
   },

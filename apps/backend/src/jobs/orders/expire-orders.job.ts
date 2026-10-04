@@ -1,6 +1,6 @@
 import { prisma } from '../../config/database.js';
 
-const db = prisma as any;
+const db = prisma;
 
 export async function expireOrdersJob(now = new Date()): Promise<number> {
   return db.$executeRaw`

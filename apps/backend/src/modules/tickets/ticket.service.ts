@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../config/database.js';
+import { prisma, type DbTransaction } from '../../config/database.js';
 import { AppError } from '../../core/errors/AppError.js';
 import { BusinessError } from '../../core/errors/BusinessError.js';
 import { ticketRepository } from './ticket.repository.js';
 import { createTicketCode, signTicketQr, verifyTicketQr } from './qr.service.js';
 import type { ManualTicketValidation, TicketQrClaims } from './ticket.types.js';
 
-const db = prisma as any;
+const db = prisma;
 
-export async function issueTicketsForBooking(tx: any, bookingId: string): Promise<void> {
+export async function issueTicketsForBooking(tx: DbTransaction, bookingId: string): Promise<void> {
   const booking = await tx.booking.findUnique({ where: { id: bookingId }, select: { id: true, quantity: true } });
   if (!booking) throw new AppError('Réservation introuvable.', 404, 'BOOKING_NOT_FOUND');
   for (let ordinal = 0; ordinal < booking.quantity; ordinal += 1) {
@@ -32,7 +32,7 @@ export async function issueTicketsForBooking(tx: any, bookingId: string): Promis
 export const ticketService = {
   async listUserTickets(userId: string) {
     const tickets = await ticketRepository.listUserTickets(userId);
-    return tickets.map((ticket: any) => ({
+    return tickets.map((ticket) => ({
       ...ticket,
       qrPayload: signTicketQr({
         v: 1,
@@ -65,7 +65,7 @@ export const ticketService = {
     }
     if (!ticketId || !bookingId) throw new AppError('Billet introuvable.', 404, 'TICKET_NOT_FOUND');
 
-    return db.$transaction(async (tx: any) => {
+    return db.$transaction(async (tx: DbTransaction) => {
       const ticket = await ticketRepository.findForScan(tx, ticketId!);
       if (!ticket || ticket.bookingId !== bookingId) throw new AppError('Billet introuvable.', 404, 'TICKET_NOT_FOUND');
       const booking = ticket.booking;

@@ -2,7 +2,7 @@ import '../src/load-env.js';
 import { prisma, postgresPool } from '../src/config/database.js';
 import { DEMO_EVENTS, DEMO_TRIPS } from './demo-data.js';
 
-const db = prisma as any;
+const db = prisma;
 
 function dateInDays(days: number): Date {
   const date = new Date();

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { ManifestPassenger, TripDeparture } from '@/types';
-import { ApiError, PartnerManifestRecord } from '@/services/api';
+import { type ManifestPassenger, type TripDeparture } from '@/types';
+import { ApiError, type PartnerManifestRecord } from '@/services/api';
 import { catalogApi } from '@/features/catalog/api';
 import { ticketsApi } from '@/features/tickets/api';
 

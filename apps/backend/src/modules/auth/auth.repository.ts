@@ -2,7 +2,7 @@ import { prisma } from '../../config/database.js';
 import { hashPassword } from '../../core/security/password.js';
 import type { UserRole } from './auth.types.js';
 
-const db = prisma as any;
+const db = prisma;
 
 export const authRepository = {
   findUserByPhone(phone: string) {

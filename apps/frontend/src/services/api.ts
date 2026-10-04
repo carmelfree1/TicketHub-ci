@@ -1,4 +1,4 @@
-import { AuthUser, DigitalTicket, TicketedEvent, TripDeparture } from '@/types';
+import { type AuthUser, type DigitalTicket, type TicketedEvent, type TripDeparture } from '@/types';
 import { API_BASE_URL } from '@/lib/constants';
 
 export class ApiError extends Error {

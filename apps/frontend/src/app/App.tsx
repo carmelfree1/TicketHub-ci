@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AppScreen, AuthUser, DigitalTicket, TicketCategory, TicketedEvent, TripDeparture } from '@/types';
+import { type AppScreen, type AuthUser, type DigitalTicket, type TicketCategory, type TicketedEvent, type TripDeparture } from '@/types';
 import { ApiError } from '@/services/api';
 import { authApi } from '@/features/auth/api';
 import { catalogApi } from '@/features/catalog/api';
@@ -14,7 +14,7 @@ import { ExplorerScreen } from '@/features/catalog/pages/ExplorerScreen';
 import { SeatSelectionScreen } from '@/features/booking/pages/SeatSelectionScreen';
 import { EventTicketSelectionScreen } from '@/features/booking/pages/EventTicketSelectionScreen';
 import { PaymentScreen } from '@/features/payments/pages/PaymentScreen';
-import { PaymentResultScreen, PaymentReturnState } from '@/features/payments/pages/PaymentResultScreen';
+import { PaymentResultScreen, type PaymentReturnState } from '@/features/payments/pages/PaymentResultScreen';
 import { DigitalPassScreen } from '@/features/tickets/pages/DigitalPassScreen';
 import { TicketsWalletScreen } from '@/features/tickets/pages/TicketsWalletScreen';
 import { PartnerDashboardScreen } from '@/features/providers/pages/PartnerDashboardScreen';

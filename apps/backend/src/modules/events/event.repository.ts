@@ -1,12 +1,17 @@
+import type { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../config/database.js';
 import type { EventQuery } from './event.types.js';
 
-const db = prisma as any;
+const db = prisma;
 const bookingWhere = (now: Date) => ({
   OR: [{ status: 'paid' }, { status: 'pending_payment', holdExpiresAt: { gt: now } }],
 });
 
-function toEvent(event: any) {
+type EventRow = Prisma.EventGetPayload<{
+  include: { categories: { include: { bookings: { select: { quantity: true } } } } };
+}>;
+
+function toEvent(event: EventRow) {
   return {
     id: event.id,
     title: event.title,
@@ -16,8 +21,8 @@ function toEvent(event: any) {
     city: event.city,
     startsAt: event.startsAt.toISOString(),
     imageUrl: event.imageUrl,
-    categories: (event.categories ?? []).map((category: any) => {
-      const reserved = (category.bookings ?? []).reduce((sum: number, booking: any) => sum + booking.quantity, 0);
+    categories: (event.categories ?? []).map((category) => {
+      const reserved = (category.bookings ?? []).reduce((sum: number, booking) => sum + booking.quantity, 0);
       return {
         id: category.id,
         name: category.name,

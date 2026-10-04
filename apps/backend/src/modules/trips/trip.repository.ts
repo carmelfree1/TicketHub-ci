@@ -1,7 +1,8 @@
+import type { Prisma } from '../../generated/prisma/client.js';
 import { prisma } from '../../config/database.js';
 import type { TripQuery } from './trip.types.js';
 
-const db = prisma as any;
+const db = prisma;
 const liveBookingWhere = (now: Date) => ({
   OR: [{ status: 'paid' }, { status: 'pending_payment', holdExpiresAt: { gt: now } }],
 });
@@ -10,8 +11,10 @@ function localTime(value: Date): string {
   return value.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Abidjan' });
 }
 
-function toTrip(trip: any) {
-  const occupied = [...new Set<number>((trip.bookings ?? []).flatMap((booking: any) => booking.seats.map(Number)))].sort((a, b) => a - b);
+type TripRow = Prisma.BusTripGetPayload<{ include: { bookings: { select: { seats: true } } } }>;
+
+function toTrip(trip: TripRow) {
+  const occupied = [...new Set<number>((trip.bookings ?? []).flatMap((booking) => booking.seats.map(Number)))].sort((a, b) => a - b);
   return {
     id: trip.id,
     carrier: trip.carrier,
@@ -72,7 +75,7 @@ export const tripRepository = {
       include: { bookings: { where: liveBookingWhere(now), select: { seats: true } } },
     });
     if (!trip) return null;
-    const occupied = new Set<number>((trip.bookings ?? []).flatMap((booking: any) => booking.seats.map(Number)));
+    const occupied = new Set<number>((trip.bookings ?? []).flatMap((booking) => booking.seats.map(Number)));
     return {
       tripId: trip.id,
       capacity: trip.seatCapacity,

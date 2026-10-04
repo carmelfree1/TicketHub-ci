@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient } from '../generated/prisma/client.js';
+import { type Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { env } from './env.js';
 import { logger } from '../core/logger/logger.js';
 
@@ -19,6 +19,8 @@ export const prisma = new PrismaClient({
   adapter,
   log: env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
 });
+
+export type DbTransaction = Prisma.TransactionClient;
 
 export async function connectDatabase(): Promise<void> {
   await prisma.$connect();

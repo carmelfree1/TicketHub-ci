@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { TripDeparture, PaymentMethodId, TicketCategory, TicketedEvent } from '@/types';
+import { type TripDeparture, type PaymentMethodId, type TicketCategory, type TicketedEvent } from '@/types';
 
 interface PaymentScreenProps {
   trip: TripDeparture;

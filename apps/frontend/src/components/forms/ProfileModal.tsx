@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppScreen, AuthUser } from '@/types';
+import { type AppScreen, type AuthUser } from '@/types';
 
 interface Credentials {
   fullName?: string;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { TicketCategory, TicketedEvent } from '@/types';
+import { type TicketCategory, type TicketedEvent } from '@/types';
 
 interface EventTicketSelectionScreenProps {
   event: TicketedEvent;

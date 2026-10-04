@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../config/database.js';
+import { prisma, type DbTransaction } from '../../config/database.js';
 
-const db = prisma as any;
+const db = prisma;
 
 export const orderRepository = {
   async findBookingForUser(bookingId: string, userId: string) {
@@ -49,7 +49,7 @@ export const orderRepository = {
     });
   },
 
-  createFromBooking(tx: any, booking: { id: string; userId: string; amountXof: number; currency: string }) {
+  createFromBooking(tx: DbTransaction, booking: { id: string; userId: string; amountXof: number; currency: string }) {
     return tx.order.upsert({
       where: { bookingId: booking.id },
       create: { id: randomUUID(), bookingId: booking.id, userId: booking.userId, amountXof: booking.amountXof, currency: booking.currency, status: 'paid' },

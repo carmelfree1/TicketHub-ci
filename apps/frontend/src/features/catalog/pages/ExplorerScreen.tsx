@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { TripDeparture, TicketedEvent } from '@/types';
+import { type TripDeparture, type TicketedEvent } from '@/types';
 import { catalogApi } from '@/features/catalog/api';
 
 interface ExplorerScreenProps {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppScreen, UserRole } from '@/types';
+import { type AppScreen, type UserRole } from '@/types';
 
 interface BottomNavProps {
   currentScreen: AppScreen;

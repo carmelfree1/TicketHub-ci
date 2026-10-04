@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { AuthUser, DigitalTicket } from '@/types';
-import { ApiError, TicketRecord } from '@/services/api';
+import { type AuthUser, type DigitalTicket } from '@/types';
+import { ApiError, type TicketRecord } from '@/services/api';
 import { ticketsApi } from '@/features/tickets/api';
 import { toDigitalTicket } from '@/services/ticketMapper';
 

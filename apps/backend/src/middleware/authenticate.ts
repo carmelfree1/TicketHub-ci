@@ -33,8 +33,8 @@ export const authenticate: RequestHandler = (request, _response, next) => {
   try {
     const claims = verifyJwt(token);
     const tokenHash = createHash('sha256').update(token).digest('hex');
-    void (prisma as any).session.findUnique({ where: { tokenHash }, include: { user: true } })
-      .then((session: any) => {
+    void prisma.session.findUnique({ where: { tokenHash }, include: { user: true } })
+      .then((session) => {
         if (!session || session.expiresAt.getTime() <= Date.now() || session.userId !== claims.sub) {
           // Treat stale/revoked credentials as anonymous on public routes (notably login).
           next();

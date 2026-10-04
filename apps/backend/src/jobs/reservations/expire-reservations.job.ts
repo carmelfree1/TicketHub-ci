@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database.js';
 import { logger } from '../../core/logger/logger.js';
 
-const db = prisma as any;
+const db = prisma;
 
 export async function expireReservationsJob(now = new Date()): Promise<number> {
   const result = await db.booking.updateMany({

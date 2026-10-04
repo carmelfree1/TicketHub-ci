@@ -1,5 +1,5 @@
-import { DigitalTicket } from '@/types';
-import { TicketRecord } from './api';
+import { type DigitalTicket } from '@/types';
+import { type TicketRecord } from './api';
 
 export const EMPTY_DIGITAL_TICKET: DigitalTicket = {
   ticketCode: '',

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { AppScreen } from '@/types';
+import { type AppScreen } from '@/types';
 import { ticketsApi } from '@/features/tickets/api';
 
 interface PartnerScannerScreenProps {

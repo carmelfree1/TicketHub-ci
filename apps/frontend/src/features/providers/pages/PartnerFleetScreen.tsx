@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { AppScreen } from '@/types';
+import { type AppScreen } from '@/types';
 
 interface PartnerFleetScreenProps {
   onNavigate: (screen: AppScreen) => void;

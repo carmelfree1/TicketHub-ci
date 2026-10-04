@@ -1,12 +1,18 @@
+import type { Booking } from '../../generated/prisma/client.js';
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../config/database.js';
+import { prisma, type DbTransaction } from '../../config/database.js';
 import { BusinessError } from '../../core/errors/BusinessError.js';
 import type { EventReservationInput, TransportReservationInput } from './reservation.types.js';
 
-const db = prisma as any;
+const db = prisma;
 const HOLD_MINUTES = 10;
 
-function toBookingDto(booking: any) {
+type BookingDtoSource = Pick<
+  Booking,
+  'id' | 'productType' | 'seats' | 'quantity' | 'amountXof' | 'currency' | 'status' | 'holdExpiresAt' | 'createdAt'
+>;
+
+function toBookingDto(booking: BookingDtoSource) {
   return {
     id: booking.id,
     product_type: booking.productType,
@@ -31,8 +37,8 @@ function validateSeats(seats: number[], capacity: number): number[] {
 
 export const reservationRepository = {
   async createTransport(userId: string, input: TransportReservationInput) {
-    return db.$transaction(async (tx: any) => {
-      const [trip] = await tx.$queryRaw`
+    return db.$transaction(async (tx: DbTransaction) => {
+      const [trip] = await tx.$queryRaw<Array<{ id: string; priceXof: number; seatCapacity: number; departAt: Date }>>`
         SELECT id, price_xof AS "priceXof", seat_capacity AS "seatCapacity", depart_at AS "departAt"
         FROM bus_trips WHERE id = ${input.tripId} FOR UPDATE`;
       if (!trip || new Date(trip.departAt).getTime() <= Date.now()) {
@@ -65,8 +71,8 @@ export const reservationRepository = {
   },
 
   async createEvent(userId: string, input: EventReservationInput) {
-    return db.$transaction(async (tx: any) => {
-      const [category] = await tx.$queryRaw`
+    return db.$transaction(async (tx: DbTransaction) => {
+      const [category] = await tx.$queryRaw<Array<{ id: string; eventId: string; priceXof: number; capacity: number; startsAt: Date; eventStatus: string }>>`
         SELECT c.id, c.event_id AS "eventId", c.price_xof AS "priceXof", c.capacity,
                e.starts_at AS "startsAt", e.status AS "eventStatus"
         FROM event_ticket_categories c JOIN events e ON e.id = c.event_id

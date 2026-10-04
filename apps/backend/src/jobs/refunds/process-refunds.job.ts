@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database.js';
 import { logger } from '../../core/logger/logger.js';
 
-const db = prisma as any;
+const db = prisma;
 
 export async function processRefundReviewJob(input: { refundId: string }): Promise<void> {
   const result = await db.refund.updateMany({

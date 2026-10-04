@@ -13,7 +13,7 @@ test('PostgreSQL schema contains the TicketHub persistence modules', { skip: !te
   const { connectDatabase, disconnectDatabase, prisma } = await import('../../src/config/database.js');
   try {
     await connectDatabase();
-    const relations = await (prisma as any).$queryRaw`
+    const relations = await prisma.$queryRaw<Array<Record<string, string | null>>>`
       SELECT
         to_regclass('public.users') AS users,
         to_regclass('public.bookings') AS bookings,

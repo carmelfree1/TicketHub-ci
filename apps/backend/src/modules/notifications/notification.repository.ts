@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/database.js';
+import type { Prisma } from '../../generated/prisma/client.js';
 import type { CreateNotificationInput } from './notification.types.js';
 
-const db = prisma as any;
+const db = prisma;
 const STALE_DELIVERY_MS = 15 * 60_000;
 
 export const notificationRepository = {
   create(input: CreateNotificationInput) {
-    return db.notification.create({ data: { id: randomUUID(), ...input, payload: input.payload, status: 'queued' } });
+    return db.notification.create({ data: { id: randomUUID(), ...input, payload: input.payload as Prisma.InputJsonObject, status: 'queued' } });
   },
   findById(id: string) { return db.notification.findUnique({ where: { id }, include: { user: true } }); },
   pending(limit = 50, now = new Date()) {

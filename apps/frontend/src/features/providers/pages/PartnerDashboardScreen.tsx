@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { AppScreen } from '@/types';
+import { type AppScreen } from '@/types';
 
 interface PartnerDashboardScreenProps {
   onNavigate: (screen: AppScreen) => void;

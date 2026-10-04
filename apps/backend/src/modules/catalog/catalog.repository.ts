@@ -1,5 +1,5 @@
 import { prisma } from '../../config/database.js';
-const db = prisma as any;
+const db = prisma;
 
 export const catalogRepository = {
   async summary(now = new Date()) {

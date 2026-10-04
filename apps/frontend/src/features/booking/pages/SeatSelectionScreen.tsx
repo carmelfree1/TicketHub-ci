@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { TripDeparture } from '@/types';
+import { type TripDeparture } from '@/types';
 import { ASSETS } from '@/lib/assets';
 import { catalogApi } from '@/features/catalog/api';
 

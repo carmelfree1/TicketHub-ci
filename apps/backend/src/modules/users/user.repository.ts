@@ -1,7 +1,7 @@
 import { prisma } from '../../config/database.js';
 import type { UpdateProfileInput } from './user.types.js';
 
-const db = prisma as any;
+const db = prisma;
 
 export const userRepository = {
   findById(id: string) {

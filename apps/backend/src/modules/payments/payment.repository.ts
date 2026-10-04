@@ -1,18 +1,19 @@
+import type { GeniusPayAdapterInput } from '../../integrations/geniuspay/geniuspay.adapter.js';
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../config/database.js';
+import { prisma, type DbTransaction } from '../../config/database.js';
 import { AppError } from '../../core/errors/AppError.js';
 import type { GeniusPayPayment, GeniusPayWebhookPayload } from '../../integrations/geniuspay/geniuspay.types.js';
 import { issueTicketsForBooking } from '../tickets/ticket.service.js';
 import { orderRepository } from '../orders/order.repository.js';
 import type { PaymentMethodId } from './payment.types.js';
 
-const db = prisma as any;
+const db = prisma;
 const PAYMENT_START_LEASE_MS = 30_000;
 
 export const paymentRepository = {
-  async start(userId: string, bookingId: string, paymentMethod: PaymentMethodId, createProviderPayment: (input: any) => Promise<GeniusPayPayment>) {
-    const prepared = await db.$transaction(async (tx: any) => {
-      const [locked] = await tx.$queryRaw`SELECT id FROM bookings WHERE id = ${bookingId} FOR UPDATE`;
+  async start(userId: string, bookingId: string, paymentMethod: PaymentMethodId, createProviderPayment: (input: Omit<GeniusPayAdapterInput, 'appUrl'>) => Promise<GeniusPayPayment>) {
+    const prepared = await db.$transaction(async (tx: DbTransaction) => {
+      const [locked] = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM bookings WHERE id = ${bookingId} FOR UPDATE`;
       if (!locked) throw new AppError('Réservation introuvable.', 404, 'BOOKING_NOT_FOUND');
       const booking = await tx.booking.findUnique({
         where: { id: bookingId },
@@ -25,7 +26,7 @@ export const paymentRepository = {
       if (booking.payment?.status === 'completed') throw new AppError('Cette réservation est déjà payée.', 409, 'BOOKING_ALREADY_PAID');
       if (booking.payment?.checkoutUrl && booking.payment.status === 'pending') {
         return {
-          shouldCreate: false,
+          shouldCreate: false as const,
           payment: {
             bookingId,
             checkoutUrl: booking.payment.checkoutUrl,
@@ -61,7 +62,7 @@ export const paymentRepository = {
 
       const description = booking.event?.title || booking.busTrip?.carrier || 'TicketHub CI';
       return {
-        shouldCreate: true,
+        shouldCreate: true as const,
         idempotencyKey: idempotencyKey!,
         input: {
           amount: booking.amountXof,
@@ -69,7 +70,7 @@ export const paymentRepository = {
           customer: { name: booking.user.fullName, phone: booking.user.phone },
           bookingId,
           userId,
-          productType: booking.productType,
+          productType: booking.productType as 'transport' | 'event',
           idempotencyKey: idempotencyKey!,
           paymentMethod,
         },
@@ -101,7 +102,7 @@ export const paymentRepository = {
   },
 
   async processWebhook(deliveryId: string, eventType: string, payload: GeniusPayWebhookPayload) {
-    return db.$transaction(async (tx: any) => {
+    return db.$transaction(async (tx: DbTransaction) => {
       const delivery = await tx.webhookDelivery.createMany({
         data: [{ deliveryId, eventType }],
         skipDuplicates: true,
@@ -109,7 +110,7 @@ export const paymentRepository = {
       if (delivery.count === 0) return { accepted: true, duplicate: true };
       const data = payload.data!;
       const bookingId = String(data.metadata?.booking_id || '');
-      const [locked] = await tx.$queryRaw`SELECT id FROM bookings WHERE id = ${bookingId} FOR UPDATE`;
+      const [locked] = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM bookings WHERE id = ${bookingId} FOR UPDATE`;
       const payment = locked ? await tx.payment.findUnique({ where: { bookingId }, include: { booking: true } }) : null;
       if (!payment || payment.providerReference !== data.reference) throw new AppError('Le paiement ne correspond à aucune réservation.', 404, 'PAYMENT_NOT_FOUND');
       if (Number(data.amount) !== payment.amountXof || data.currency !== 'XOF') {

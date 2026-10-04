@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/database.js';
 import { env } from '../../config/env.js';
 
-const db = prisma as any;
+const db = prisma;
 
 export const settlementRepository = {
   async generate(periodStart: Date, periodEnd: Date) {

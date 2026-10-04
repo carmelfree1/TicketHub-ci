@@ -2,8 +2,7 @@ import { createGeniusPayPayment } from './geniuspay.client.js';
 import { mapPaymentMethod } from './geniuspay.mapper.js';
 import type { PaymentMethodId } from '../../modules/payments/payment.types.js';
 
-export const geniusPayAdapter = {
-  createPayment(input: {
+export type GeniusPayAdapterInput = {
     amount: number;
     description: string;
     customer: { name: string; phone: string };
@@ -13,7 +12,10 @@ export const geniusPayAdapter = {
     idempotencyKey: string;
     paymentMethod: PaymentMethodId;
     appUrl: string;
-  }) {
+  };
+
+export const geniusPayAdapter = {
+  createPayment(input: GeniusPayAdapterInput) {
     return createGeniusPayPayment({
       amount: input.amount,
       currency: 'XOF',
