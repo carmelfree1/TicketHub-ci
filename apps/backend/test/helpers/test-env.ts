@@ -11,4 +11,11 @@ export function configureTestEnv(databaseUrl = 'postgresql://tickethub:tickethub
   process.env.WEB_ORIGIN = 'http://localhost:3000';
   process.env.APP_URL = 'http://localhost:3000';
   process.env.REDIS_URL = '';
+  process.env.DATA_ENCRYPTION_KEY = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
+  // Tests hammer the API far beyond human rates; dedicated rate-limit tests lower these explicitly.
+  process.env.AUTH_RATE_LIMIT_MAX ??= '1000';
+  process.env.MFA_RATE_LIMIT_MAX ??= '1000';
+  process.env.PAYMENT_RATE_LIMIT_MAX ??= '1000';
+  process.env.RESERVATION_RATE_LIMIT_MAX ??= '1000';
+  process.env.SCAN_RATE_LIMIT_MAX ??= '1000';
 }

@@ -10,6 +10,7 @@ export interface AuthenticatedUser {
   fullName: string;
   phone: string;
   role: 'traveler' | 'partner';
+  mfaEnabled: boolean;
 }
 
 function readCookie(header: string | undefined, name: string): string | undefined {
@@ -45,6 +46,7 @@ export const authenticate: RequestHandler = (request, _response, next) => {
           fullName: session.user.fullName,
           phone: session.user.phone,
           role: session.user.role as AuthenticatedUser['role'],
+          mfaEnabled: session.user.mfaEnabledAt !== null,
         };
         request.sessionToken = token;
         request.sessionTokenHash = tokenHash;

@@ -1,5 +1,9 @@
 import { env } from './env.js';
 
+const mfaRequiredRoles = new Set(
+  (env.MFA_REQUIRED_ROLES ?? (env.NODE_ENV === 'production' ? 'partner' : '')).split(',').map((role) => role.trim()).filter(Boolean),
+);
+
 export const appConfig = {
   name: 'TicketHub CI API',
   apiPrefix: '/api',
@@ -10,5 +14,13 @@ export const appConfig = {
   cookieName: 'tickethub_session',
   cookieSecure: env.NODE_ENV === 'production',
   sessionTtlSeconds: env.SESSION_TTL_DAYS * 24 * 60 * 60,
-  authRateLimit: { windowMs: 15 * 60 * 1000, limit: 12 },
+  authRateLimit: { windowMs: 15 * 60 * 1000, limit: env.AUTH_RATE_LIMIT_MAX },
+  rateLimits: {
+    mfa: env.MFA_RATE_LIMIT_MAX,
+    payment: env.PAYMENT_RATE_LIMIT_MAX,
+    reservation: env.RESERVATION_RATE_LIMIT_MAX,
+    scan: env.SCAN_RATE_LIMIT_MAX,
+  },
+  mfaRequiredRoles,
+  lockout: { maxFailures: 5, durationMs: 15 * 60 * 1000 },
 } as const;

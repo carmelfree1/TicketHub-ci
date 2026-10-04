@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { paymentRateLimit, webhookRateLimit } from '../../core/security/rate-limit.js';
 import { asyncHandler } from '../../core/http/async-handler.js';
 import { authorize } from '../../middleware/authorize.js';
 import { requireAuth } from '../../middleware/authenticate.js';
@@ -8,7 +9,7 @@ import { paymentController } from './payment.controller.js';
 import { paymentMethodSchema } from './payment.schema.js';
 
 export const paymentRoutes = Router();
-paymentRoutes.post('/bookings/:bookingId/payment', requireAuth, authorize('booking:create'), validateBody(paymentMethodSchema), asyncHandler(paymentController.start));
+paymentRoutes.post('/bookings/:bookingId/payment', requireAuth, paymentRateLimit, authorize('booking:create'), validateBody(paymentMethodSchema), asyncHandler(paymentController.start));
 
 export const paymentWebhookRoutes = Router();
-paymentWebhookRoutes.post('/api/webhooks/geniuspay', rawJsonBody, asyncHandler(paymentController.webhook));
+paymentWebhookRoutes.post('/api/webhooks/geniuspay', webhookRateLimit, rawJsonBody, asyncHandler(paymentController.webhook));

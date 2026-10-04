@@ -26,6 +26,12 @@ const envSchema = z.object({
   PG_POOL_SIZE: z.coerce.number().int().min(1).max(50).default(10),
   PLATFORM_COMMISSION_BPS: z.coerce.number().int().min(0).max(10_000).default(0),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+  MFA_REQUIRED_ROLES: z.string().optional(),
+  AUTH_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(12),
+  MFA_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
+  PAYMENT_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(10),
+  RESERVATION_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(20),
+  SCAN_RATE_LIMIT_MAX: z.coerce.number().int().min(1).default(120),
   SESSION_TTL_DAYS: z.coerce.number().int().min(1).max(30).default(14),
 }).superRefine((value, ctx) => {
   if (value.NODE_ENV === 'production') {
@@ -36,6 +42,10 @@ const envSchema = z.object({
     if (!value.APP_URL.startsWith('https://') || !value.WEB_ORIGIN.startsWith('https://')) {
       ctx.addIssue({ code: 'custom', path: ['APP_URL'], message: 'APP_URL et WEB_ORIGIN doivent utiliser HTTPS en production.' });
     }
+  }
+  const mfaRoles = (value.MFA_REQUIRED_ROLES ?? (value.NODE_ENV === 'production' ? 'partner' : '')).split(',').map((role) => role.trim()).filter(Boolean);
+  if (mfaRoles.length > 0 && value.NODE_ENV === 'production' && !value.DATA_ENCRYPTION_KEY) {
+    ctx.addIssue({ code: 'custom', path: ['DATA_ENCRYPTION_KEY'], message: 'DATA_ENCRYPTION_KEY est obligatoire lorsque la MFA est exigée.' });
   }
   if (value.DATA_ENCRYPTION_KEY && !/^[0-9a-fA-F]{64}$/.test(value.DATA_ENCRYPTION_KEY)) {
     ctx.addIssue({ code: 'custom', path: ['DATA_ENCRYPTION_KEY'], message: 'DATA_ENCRYPTION_KEY doit contenir 32 octets encodés en hexadécimal.' });

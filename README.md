@@ -64,6 +64,9 @@ Le baseline suppose les tables legacy (`users`, `sessions`, `bus_trips`, `events
 | `GENIUSPAY_API_KEY`, `GENIUSPAY_API_SECRET` | Credentials serveur-à-serveur GeniusPay; jamais exposés au navigateur. |
 | `GENIUSPAY_WEBHOOK_SECRET` | Secret configuré pour signer les webhooks du marchand. |
 | `GENIUSPAY_API_BASE_URL` | Base de l’API GeniusPay. |
+| `DATA_ENCRYPTION_KEY` | 32 octets en hexadécimal (64 caractères). Chiffre les secrets TOTP ; obligatoire en production dès que la MFA est exigée. |
+| `MFA_REQUIRED_ROLES` | Rôles (séparés par des virgules) qui doivent activer la MFA avant d’accéder aux routes privilégiées. Défaut : `partner` en production, vide ailleurs. |
+| `AUTH_RATE_LIMIT_MAX`, `MFA_RATE_LIMIT_MAX`, `PAYMENT_RATE_LIMIT_MAX`, `RESERVATION_RATE_LIMIT_MAX`, `SCAN_RATE_LIMIT_MAX` | Plafonds de requêtes par fenêtre (12 / 10 / 10 / 20 / 120 par défaut). |
 | `PARTNER_INVITE_CODE` | Code d’invitation optionnel pour l’inscription partenaire. |
 | `PGSSL`, `PG_POOL_SIZE` | TLS et taille du pool PostgreSQL. |
 | `PLATFORM_COMMISSION_BPS` | Commission des règlements en points de base (0 par défaut). |

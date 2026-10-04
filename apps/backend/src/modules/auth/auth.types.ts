@@ -18,3 +18,7 @@ export interface LoginInput {
   phone: string;
   password: string;
 }
+
+export type LoginResult =
+  | { user: PublicUser; token: string; mfaRequired?: undefined }
+  | { mfaRequired: true; challengeToken: string };

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { type AppScreen, type AuthUser } from '@/types';
+import type { SecurityStatus } from '@/services/api';
+import { MfaSettings } from './MfaSettings';
 
 interface Credentials {
   fullName?: string;
@@ -12,7 +14,10 @@ interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: AuthUser | null;
-  onAuthenticate: (mode: 'login' | 'register', credentials: Credentials) => Promise<void>;
+  security: SecurityStatus | null;
+  onSecurityChange: (security: SecurityStatus) => void;
+  onAuthenticate: (mode: 'login' | 'register', credentials: Credentials) => Promise<{ challengeToken: string } | void>;
+  onVerifyMfa: (challengeToken: string, code: string) => Promise<void>;
   onLogout: () => Promise<void>;
   onNavigateScreen: (screen: AppScreen) => void;
 }
@@ -21,7 +26,10 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   isOpen,
   onClose,
   user,
+  security,
+  onSecurityChange,
   onAuthenticate,
+  onVerifyMfa,
   onLogout,
   onNavigateScreen,
 }) => {
@@ -30,6 +38,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [partnerInviteCode, setPartnerInviteCode] = useState('');
+  const [challengeToken, setChallengeToken] = useState('');
+  const [mfaCode, setMfaCode] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [error, setError] = useState('');
 
@@ -40,16 +50,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
     setError('');
     setIsBusy(true);
     try {
-      await onAuthenticate(mode, {
+      const outcome = await onAuthenticate(mode, {
         fullName: fullName.trim(),
         phone: phone.trim(),
         password,
         partnerInviteCode: partnerInviteCode.trim() || undefined,
       });
       setPassword('');
+      if (outcome) {
+        setChallengeToken(outcome.challengeToken);
+        return;
+      }
       onClose();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Connexion impossible. Réessayez.');
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
+  const submitMfa = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError('');
+    setIsBusy(true);
+    try {
+      await onVerifyMfa(challengeToken, mfaCode.trim());
+      setChallengeToken('');
+      setMfaCode('');
+      onClose();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : 'Vérification impossible. Réessayez.');
     } finally {
       setIsBusy(false);
     }
@@ -118,6 +148,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
                 Explorer
               </button>
             </div>
+            <MfaSettings security={security} onChange={onSecurityChange} />
             <button
               type="button"
               onClick={async () => {
@@ -137,6 +168,31 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({
               {isBusy ? 'Veuillez patienter…' : 'Se déconnecter'}
             </button>
           </>
+        ) : challengeToken ? (
+          <form onSubmit={submitMfa} className="flex flex-col gap-3">
+            <p className="font-body text-[12px] text-[#0b1c30]">
+              Entrez le code à 6 chiffres de votre application d’authentification, ou l’un de vos codes de secours.
+            </p>
+            <label className="flex flex-col gap-1 font-headline text-[11px] font-bold text-[#0b1c30]">
+              Code de vérification
+              <input
+                required
+                autoFocus
+                autoComplete="one-time-code"
+                maxLength={16}
+                value={mfaCode}
+                onChange={(event) => setMfaCode(event.target.value)}
+                className="h-11 px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[14px] focus:outline-none focus:ring-2 focus:ring-[#ff6b00]"
+              />
+            </label>
+            {error && <p role="alert" className="p-2.5 rounded-xl bg-[#ffdad6] text-[#93000a] font-body text-[12px]">{error}</p>}
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => { setChallengeToken(''); setMfaCode(''); setError(''); }} className="min-h-[46px] rounded-xl bg-white border border-[#dce9ff] text-[#0b1c30] font-headline text-[13px] font-bold cursor-pointer">Retour</button>
+              <button disabled={isBusy || mfaCode.trim().length < 6} type="submit" className="min-h-[46px] rounded-xl bg-[#ff6b00] text-white font-headline text-[13px] font-bold cursor-pointer disabled:opacity-60">
+                {isBusy ? 'Vérification…' : 'Vérifier'}
+              </button>
+            </div>
+          </form>
         ) : (
           <>
             <div className="grid grid-cols-2 p-1 rounded-xl bg-[#eff4ff] gap-1">

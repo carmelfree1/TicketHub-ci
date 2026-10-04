@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { type AppScreen, type AuthUser, type DigitalTicket, type TicketCategory, type TicketedEvent, type TripDeparture } from '@/types';
 import { ApiError } from '@/services/api';
 import { authApi } from '@/features/auth/api';
+import type { SecurityStatus } from '@/services/api';
 import { catalogApi } from '@/features/catalog/api';
 import { bookingApi } from '@/features/booking/api';
 import { paymentsApi } from '@/features/payments/api';
@@ -32,6 +33,7 @@ const partnerScreens: AppScreen[] = [
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('explorer');
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [security, setSecurity] = useState<SecurityStatus | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<TripDeparture | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([14]);
   const [selectedEvent, setSelectedEvent] = useState<TicketedEvent | null>(null);
@@ -56,8 +58,8 @@ export default function App() {
   useEffect(() => {
     let active = true;
     authApi.me()
-      .then((user) => { if (active) setAuthUser(user); })
-      .catch(() => { if (active) setAuthUser(null); });
+      .then((session) => { if (active) { setAuthUser(session.user); setSecurity(session.security); } })
+      .catch(() => { if (active) { setAuthUser(null); setSecurity(null); } });
     return () => { active = false; };
   }, []);
 
@@ -267,23 +269,37 @@ export default function App() {
   const handleAuthenticate = async (
     mode: 'login' | 'register',
     credentials: { fullName?: string; phone: string; password: string; partnerInviteCode?: string },
-  ) => {
-    const user = mode === 'login'
-      ? await authApi.login({ phone: credentials.phone, password: credentials.password })
-      : await authApi.register({
-          fullName: credentials.fullName || '',
-          phone: credentials.phone,
-          password: credentials.password,
-          partnerInviteCode: credentials.partnerInviteCode,
-        });
+  ): Promise<{ challengeToken: string } | void> => {
+    if (mode === 'login') {
+      const outcome = await authApi.login({ phone: credentials.phone, password: credentials.password });
+      if (outcome.mfaRequired) return { challengeToken: outcome.challengeToken };
+      await completeSignIn(outcome.user);
+      return;
+    }
+    const user = await authApi.register({
+      fullName: credentials.fullName || '',
+      phone: credentials.phone,
+      password: credentials.password,
+      partnerInviteCode: credentials.partnerInviteCode,
+    });
+    await completeSignIn(user);
+  };
+
+  const completeSignIn = async (user: AuthUser) => {
     setAuthUser(user);
     setFlowError('');
+    setSecurity((await authApi.me().catch(() => null))?.security ?? null);
     if (user.role === 'partner') setCurrentScreen('partner-dashboard');
+  };
+
+  const handleVerifyMfa = async (challengeToken: string, code: string) => {
+    await completeSignIn(await authApi.loginMfa({ challengeToken, code }));
   };
 
   const handleLogout = async () => {
     await authApi.logout();
     setAuthUser(null);
+    setSecurity(null);
     setCurrentScreen('explorer');
   };
 
@@ -391,7 +407,10 @@ export default function App() {
           isOpen={isProfileModalOpen}
           onClose={() => setIsProfileModalOpen(false)}
           user={authUser}
+          security={security}
+          onSecurityChange={setSecurity}
           onAuthenticate={handleAuthenticate}
+          onVerifyMfa={handleVerifyMfa}
           onLogout={handleLogout}
           onNavigateScreen={handleNavigate}
         />

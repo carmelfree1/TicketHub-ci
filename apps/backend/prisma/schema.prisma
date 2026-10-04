@@ -14,6 +14,13 @@ model User {
   passwordHash String    @map("password_hash") @db.Text
   role         String    @default("traveler") @db.VarChar(20)
   createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  mfaSecret        String?   @map("mfa_secret") @db.Text
+  mfaEnabledAt     DateTime? @map("mfa_enabled_at") @db.Timestamptz(6)
+  mfaLastStep      BigInt?   @map("mfa_last_step")
+  failedLoginCount Int       @default(0) @map("failed_login_count")
+  lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(6)
+  mfaBackupCodes   MfaBackupCode[]
+  auditLogs        AuditLog[]
   sessions     Session[]
   bookings     Booking[]
   orders       Order[]
@@ -247,4 +254,33 @@ model WebhookDelivery {
   receivedAt DateTime @default(now()) @map("received_at") @db.Timestamptz(6)
 
   @@map("webhook_deliveries")
+}
+
+model MfaBackupCode {
+  id       String    @id
+  userId   String    @map("user_id")
+  codeHash String    @map("code_hash") @db.VarChar(64)
+  usedAt   DateTime? @map("used_at") @db.Timestamptz(6)
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("mfa_backup_codes")
+}
+
+model AuditLog {
+  id           String   @id
+  userId       String?  @map("user_id")
+  action       String   @db.VarChar(80)
+  resourceType String?  @map("resource_type") @db.VarChar(50)
+  resourceId   String?  @map("resource_id") @db.VarChar(100)
+  ipAddress    String?  @map("ip_address") @db.VarChar(64)
+  userAgent    String?  @map("user_agent") @db.VarChar(500)
+  metadata     Json     @default("{}") @db.JsonB
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([action, createdAt])
+  @@index([userId, createdAt])
+  @@index([resourceType, resourceId])
+  @@map("audit_logs")
 }

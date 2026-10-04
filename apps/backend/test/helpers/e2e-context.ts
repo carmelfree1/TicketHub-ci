@@ -12,6 +12,8 @@ export interface Booking {
 
 export interface Session {
   cookie: string;
+  phone: string;
+  password: string;
 }
 
 /**
@@ -55,19 +57,16 @@ export async function startE2eContext(databaseUrl: string) {
   }
 
   async function register(fullName: string, extra: Record<string, unknown> = {}): Promise<Session> {
+    const phone = `0${String(randomInt(0, 1_000_000_000)).padStart(9, '0')}`;
+    const password = 'Test-only-password-482!';
     const response = await api('/api/auth/register', {
       method: 'POST',
-      body: JSON.stringify({
-        fullName,
-        phone: `0${String(randomInt(0, 1_000_000_000)).padStart(9, '0')}`,
-        password: 'Test-only-password-482!',
-        ...extra,
-      }),
+      body: JSON.stringify({ fullName, phone, password, ...extra }),
     });
     assert.equal(response.status, 201, await response.clone().text());
     const cookie = response.headers.get('set-cookie')?.split(';', 1)[0];
     assert.ok(cookie, 'expected an HttpOnly session cookie');
-    return { cookie };
+    return { cookie, phone, password };
   }
 
   const registerTraveler = (name = 'Voyageur Test') => register(name);

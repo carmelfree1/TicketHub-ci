@@ -1,4 +1,5 @@
 import express, { type NextFunction, type Request, type Response } from 'express';
+import helmet from 'helmet';
 import { env } from './config/env.js';
 import { appConfig } from './config/app.config.js';
 import { prisma } from './config/database.js';
@@ -23,11 +24,17 @@ export function createApp() {
   app.set('trust proxy', env.NODE_ENV === 'production' ? 1 : false);
 
   app.use(requestId);
-  app.use((_request: Request, response: Response, next: NextFunction) => {
-    response.setHeader('X-Content-Type-Options', 'nosniff');
-    response.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-    response.setHeader('X-Frame-Options', 'DENY');
+  // This service only returns JSON, so the strictest CSP applies: nothing may load or frame its responses.
+  app.use(helmet({
+    contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"], baseUri: ["'none'"], formAction: ["'none'"] } },
+    hsts: env.NODE_ENV === 'production' ? { maxAge: 63_072_000, includeSubDomains: true, preload: true } : false,
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    frameguard: { action: 'deny' },
+  }));
+  app.use((request: Request, response: Response, next: NextFunction) => {
     response.setHeader('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()');
+    // Account, ticket and payment responses are personal; only the public catalog may be cached.
+    if (!request.path.startsWith('/api/catalog')) response.setHeader('Cache-Control', 'no-store');
     next();
   });
 

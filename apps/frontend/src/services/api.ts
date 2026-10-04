@@ -13,6 +13,13 @@ export class ApiError extends Error {
   }
 }
 
+export interface SecurityStatus {
+  mfaEnabled: boolean;
+  mfaRequired: boolean;
+}
+
+export type LoginOutcome = { user: AuthUser; mfaRequired?: undefined } | { mfaRequired: true; challengeToken: string };
+
 interface ApiErrorResponse {
   error?: { code?: string; message?: string };
 }
@@ -93,17 +100,38 @@ export interface TicketRecord extends Partial<DigitalTicket> {
 }
 
 export const api = {
-  async me(): Promise<AuthUser | null> {
-    const result = await request<{ user: AuthUser | null }>('/auth/me');
-    return result.user;
+  async me(): Promise<{ user: AuthUser | null; security: SecurityStatus | null }> {
+    return request<{ user: AuthUser | null; security: SecurityStatus | null }>('/auth/me');
   },
 
-  async login(input: { phone: string; password: string }): Promise<AuthUser> {
-    const result = await request<{ user: AuthUser }>('/auth/login', {
+  async login(input: { phone: string; password: string }): Promise<LoginOutcome> {
+    return request<LoginOutcome>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(input),
+    });
+  },
+
+  async loginMfa(input: { challengeToken: string; code: string }): Promise<AuthUser> {
+    const result = await request<{ user: AuthUser }>('/auth/login/mfa', {
       method: 'POST',
       body: JSON.stringify(input),
     });
     return result.user;
+  },
+
+  async mfaSetup(): Promise<{ secret: string; otpauthUri: string }> {
+    return (await request<{ data: { secret: string; otpauthUri: string } }>('/auth/mfa/setup', { method: 'POST' })).data;
+  },
+
+  async mfaEnable(code: string): Promise<{ backupCodes: string[] }> {
+    return (await request<{ data: { backupCodes: string[] } }>('/auth/mfa/enable', {
+      method: 'POST',
+      body: JSON.stringify({ code }),
+    })).data;
+  },
+
+  async mfaDisable(input: { password: string; code: string }): Promise<void> {
+    await request<void>('/auth/mfa/disable', { method: 'POST', body: JSON.stringify(input) });
   },
 
   async register(input: { fullName: string; phone: string; password: string; partnerInviteCode?: string }): Promise<AuthUser> {
