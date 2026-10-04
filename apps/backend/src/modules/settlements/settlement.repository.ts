@@ -1,34 +1,48 @@
 import { randomUUID } from 'node:crypto';
 import { prisma } from '../../config/database.js';
-import { env } from '../../config/env.js';
 
 const db = prisma;
 
 export const settlementRepository = {
+  /**
+   * Totals the sale snapshots (order_items) of paid orders created in [periodStart, periodEnd), per company. Gross,
+   * commission and net come from what was recorded at sale time, so a later change of commission rules never alters
+   * a period that was already computed. Transport and event sales are both included.
+   */
   async generate(periodStart: Date, periodEnd: Date) {
-    const groups = await db.$queryRaw`
-      SELECT bt.carrier_code AS "providerCode", SUM(b.amount_xof)::bigint AS "grossXof"
-      FROM bookings b
-      JOIN bus_trips bt ON bt.id = b.bus_trip_id
-      JOIN payments p ON p.booking_id = b.id
-      WHERE b.status = 'paid' AND p.status = 'completed'
-        AND b.created_at >= ${periodStart} AND b.created_at < ${periodEnd}
-      GROUP BY bt.carrier_code` as Array<{ providerCode: string; grossXof: bigint | number }>;
+    const groups = await db.orderItem.groupBy({
+      by: ['providerId'],
+      where: { createdAt: { gte: periodStart, lt: periodEnd }, order: { status: 'paid' } },
+      _sum: { lineTotalXof: true, commissionXof: true },
+    });
+    const providers = await db.provider.findMany({ where: { id: { in: groups.map((group) => group.providerId) } }, select: { id: true, code: true } });
+    const codeById = new Map(providers.map((provider) => [provider.id, provider.code]));
     const results = [];
     for (const group of groups) {
-      const grossXof = Number(group.grossXof);
-      const commissionXof = Math.floor(grossXof * env.PLATFORM_COMMISSION_BPS / 10_000);
-      results.push(await db.settlement.upsert({
-        where: { providerCode_periodStart_periodEnd: { providerCode: group.providerCode, periodStart, periodEnd } },
-        create: {
-          id: randomUUID(), providerCode: group.providerCode, periodStart, periodEnd,
-          grossXof, commissionXof, netXof: grossXof - commissionXof, status: 'pending',
-        },
-        update: { grossXof, commissionXof, netXof: grossXof - commissionXof },
-      }));
+      const providerCode = codeById.get(group.providerId);
+      if (!providerCode) continue;
+      const grossXof = group._sum.lineTotalXof ?? 0;
+      const commissionXof = group._sum.commissionXof ?? 0;
+      const amounts = { grossXof, commissionXof, netXof: grossXof - commissionXof };
+      const key = { providerCode_periodStart_periodEnd: { providerCode, periodStart, periodEnd } };
+      await db.settlement.upsert({
+        where: key,
+        create: { id: randomUUID(), providerCode, periodStart, periodEnd, ...amounts, status: 'pending' },
+        update: {},
+      });
+      // An approved or paid settlement is final; only a pending one may be recomputed.
+      await db.settlement.updateMany({ where: { providerCode, periodStart, periodEnd, status: 'pending' }, data: amounts });
+      results.push(await db.settlement.findUniqueOrThrow({ where: key }));
     }
     return results;
   },
 
-  list() { return db.settlement.findMany({ orderBy: [{ periodStart: 'desc' }, { providerCode: 'asc' }], take: 100 }); },
+  /** Only the companies the caller belongs to, never the whole platform. */
+  listForProviders(providerCodes: string[]) {
+    return db.settlement.findMany({
+      where: { providerCode: { in: providerCodes } },
+      orderBy: [{ periodStart: 'desc' }, { providerCode: 'asc' }],
+      take: 100,
+    });
+  },
 };

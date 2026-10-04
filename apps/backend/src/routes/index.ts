@@ -8,6 +8,7 @@ import { orderRoutes } from '../modules/orders/order.routes.js';
 import { paymentRoutes } from '../modules/payments/payment.routes.js';
 import { ticketRoutes } from '../modules/tickets/ticket.routes.js';
 import { refundRoutes } from '../modules/refunds/refund.routes.js';
+import { partnerRoutes } from '../modules/partner/partner.routes.js';
 import { settlementRoutes } from '../modules/settlements/settlement.routes.js';
 
 export const apiRoutes = Router();
@@ -20,4 +21,5 @@ apiRoutes.use(orderRoutes);
 apiRoutes.use(paymentRoutes);
 apiRoutes.use(ticketRoutes);
 apiRoutes.use(refundRoutes);
+apiRoutes.use(partnerRoutes);
 apiRoutes.use(settlementRoutes);

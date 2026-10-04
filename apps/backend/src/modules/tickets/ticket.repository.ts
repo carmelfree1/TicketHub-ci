@@ -103,6 +103,10 @@ export const ticketRepository = {
     return tx.ticket.findUnique({ where: { id: ticketId }, include: ticketIncludes });
   },
 
+  findTripProvider(tripId: string) {
+    return db.busTrip.findUnique({ where: { id: tripId }, select: { id: true, providerId: true } });
+  },
+
   async findByCode(code: string) {
     return db.ticket.findUnique({ where: { code }, select: { id: true, bookingId: true } });
   },

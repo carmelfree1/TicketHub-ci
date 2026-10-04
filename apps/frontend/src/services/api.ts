@@ -99,6 +99,37 @@ export interface TicketRecord extends Partial<DigitalTicket> {
   quantity?: number;
 }
 
+export interface PartnerProvider {
+  id: string;
+  code: string;
+  name: string;
+  role: 'owner' | 'manager' | 'scanner';
+}
+
+export interface PartnerTrip {
+  id: string;
+  carrier: string;
+  departAt: string;
+  departCity: string;
+  departStation: string;
+  arrivalCity: string;
+  arrivalStation: string;
+  seatCapacity: number;
+  seatsSold: number;
+}
+
+export type StatsPeriod = 'today' | 'week' | 'month';
+
+export interface PartnerStats {
+  period: StatsPeriod;
+  grossXof: number;
+  commissionXof: number;
+  netXof: number;
+  ticketsSold: number;
+  orders: number;
+  ticketsScanned: number;
+}
+
 export const api = {
   async me(): Promise<{ user: AuthUser | null; security: SecurityStatus | null }> {
     return request<{ user: AuthUser | null; security: SecurityStatus | null }>('/auth/me');
@@ -223,6 +254,18 @@ export const api = {
       body: JSON.stringify(input),
     });
     return result.data;
+  },
+
+  async partnerMe(): Promise<PartnerProvider[]> {
+    return (await request<{ data: { providers: PartnerProvider[] } }>('/partner/me')).data.providers;
+  },
+
+  async partnerTrips(): Promise<PartnerTrip[]> {
+    return (await request<{ data: PartnerTrip[] }>('/partner/trips')).data;
+  },
+
+  async partnerStats(period: StatsPeriod): Promise<PartnerStats> {
+    return (await request<{ data: PartnerStats }>(`/partner/stats?period=${period}`)).data;
   },
 
   async partnerManifest(tripId: string): Promise<PartnerManifestRecord[]> {

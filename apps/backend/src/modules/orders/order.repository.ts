@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { prisma, type DbTransaction } from '../../config/database.js';
+import { AppError } from '../../core/errors/AppError.js';
+import { commissionService } from './commission.service.js';
 
 const db = prisma;
 
@@ -49,11 +51,46 @@ export const orderRepository = {
     });
   },
 
-  createFromBooking(tx: DbTransaction, booking: { id: string; userId: string; amountXof: number; currency: string }) {
-    return tx.order.upsert({
+  /**
+   * Marks the booking's order paid and records what was sold (provider, quantity, unit price, commission) as an
+   * immutable snapshot. Safe to call twice: an order that already has its item keeps it.
+   */
+  async createFromBooking(tx: DbTransaction, booking: { id: string; userId: string; amountXof: number; currency: string }) {
+    const order = await tx.order.upsert({
       where: { bookingId: booking.id },
       create: { id: randomUUID(), bookingId: booking.id, userId: booking.userId, amountXof: booking.amountXof, currency: booking.currency, status: 'paid' },
       update: { status: 'paid' },
     });
+    if (await tx.orderItem.count({ where: { orderId: order.id } }) > 0) return order;
+
+    const detail = await tx.booking.findUniqueOrThrow({
+      where: { id: booking.id },
+      include: { busTrip: true, event: true, ticketCategory: true },
+    });
+    const providerId = detail.busTrip?.providerId ?? detail.event?.providerId;
+    if (!providerId) throw new AppError('La réservation n’est rattachée à aucune société.', 500, 'BOOKING_WITHOUT_PROVIDER');
+    const description = detail.busTrip
+      ? `${detail.busTrip.carrier} ${detail.busTrip.departCity} - ${detail.busTrip.arrivalCity}`
+      : `${detail.event?.title ?? 'Événement'}${detail.ticketCategory ? ` (${detail.ticketCategory.name})` : ''}`;
+    const unitPriceXof = Math.floor(detail.amountXof / detail.quantity);
+    const commission = await commissionService.resolve(tx, { providerId, productType: detail.productType, lineTotalXof: detail.amountXof });
+    await tx.orderItem.create({
+      data: {
+        id: randomUUID(),
+        orderId: order.id,
+        providerId,
+        productType: detail.productType,
+        busTripId: detail.busTripId,
+        eventId: detail.eventId,
+        ticketCategoryId: detail.ticketCategoryId,
+        description: description.slice(0, 300),
+        quantity: detail.quantity,
+        unitPriceXof,
+        lineTotalXof: unitPriceXof * detail.quantity,
+        commissionBps: commission.bps,
+        commissionXof: Math.min(commission.xof, unitPriceXof * detail.quantity),
+      },
+    });
+    return order;
   },
 };

@@ -195,7 +195,7 @@ describe('authentication hardening, MFA, audit trail', { skip: !testDatabaseUrl,
 
   describe('mandatory MFA for partners', () => {
     it('blocks scanning and manifests until the partner enrolled', async () => {
-      const partner = await ctx.registerPartner();
+      const partner = await ctx.registerPartnerFor(await ctx.providerIdByCode('UTB'));
       const blocked = await ctx.api('/api/partner/scans', { method: 'POST', body: JSON.stringify({ ticketCode: 'TKH-AAAAAA-BBBBBB' }) }, partner);
       assert.equal(blocked.status, 403);
       assert.equal((await json(blocked)).error.code, 'MFA_SETUP_REQUIRED');
@@ -211,7 +211,7 @@ describe('authentication hardening, MFA, audit trail', { skip: !testDatabaseUrl,
     });
 
     it('does not let a required-MFA account switch MFA off', async () => {
-      const partner = await ctx.registerPartner();
+      const partner = await ctx.registerPartnerFor(await ctx.providerIdByCode('UTB'));
       const { secret } = await enrollMfa(partner);
       const response = await ctx.api('/api/auth/mfa/disable', {
         method: 'POST',
@@ -229,7 +229,7 @@ describe('authentication hardening, MFA, audit trail', { skip: !testDatabaseUrl,
 
   describe('audit trail and security events', () => {
     it('records logins, failures and rejected scans with the acting user', async () => {
-      const partner = await ctx.registerPartner();
+      const partner = await ctx.registerPartnerFor(await ctx.providerIdByCode('UTB'));
       await enrollMfa(partner);
       const user = await ctx.prisma.user.findFirstOrThrow({ orderBy: { createdAt: 'desc' }, where: { role: 'partner' } });
       await ctx.api('/api/partner/scans', { method: 'POST', body: JSON.stringify({ ticketCode: 'TKH-AAAAAA-CCCCCC' }) }, partner);

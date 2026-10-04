@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { prisma, type DbTransaction, transaction } from '../../config/database.js';
 import { AppError } from '../../core/errors/AppError.js';
 import { BusinessError } from '../../core/errors/BusinessError.js';
+import { providerAccess } from '../providers/provider-access.js';
 import { ticketRepository } from './ticket.repository.js';
 import { createTicketCode, signTicketQr, verifyTicketQr } from './qr.service.js';
 import type { ManualTicketValidation, TicketQrClaims } from './ticket.types.js';
@@ -43,11 +44,16 @@ export const ticketService = {
     }));
   },
 
-  async listManifest(tripId: string) {
+  async listManifest(actorId: string, tripId: string) {
+    const trip = await ticketRepository.findTripProvider(tripId);
+    if (!trip) throw new AppError('Départ introuvable.', 404, 'TRIP_NOT_FOUND');
+    if (!(await providerAccess.isMember(prisma, actorId, trip.providerId))) {
+      throw new AppError('Ce départ appartient à une autre société.', 403, 'WRONG_PROVIDER');
+    }
     return ticketRepository.listManifest(tripId);
   },
 
-  async consume(input: ManualTicketValidation) {
+  async consume(actorId: string, input: ManualTicketValidation) {
     let ticketId: string | undefined;
     let bookingId: string | undefined;
     let claims: TicketQrClaims | undefined;
@@ -69,6 +75,11 @@ export const ticketService = {
       const ticket = await ticketRepository.findForScan(tx, ticketId!);
       if (!ticket || ticket.bookingId !== bookingId) throw new AppError('Billet introuvable.', 404, 'TICKET_NOT_FOUND');
       const booking = ticket.booking;
+      // A scanner may only consume tickets sold for a company they belong to.
+      const ticketProviderId = booking.busTrip?.providerId ?? booking.event?.providerId;
+      if (!ticketProviderId || !(await providerAccess.isMember(tx, actorId, ticketProviderId))) {
+        throw new AppError('Ce billet appartient à une autre société.', 403, 'WRONG_PROVIDER');
+      }
       if (booking.status !== 'paid') throw new AppError('Réservation non réglée.', 409, 'BOOKING_NOT_PAID');
       if (claims && (claims.ticketId !== ticket.id || claims.bookingId !== booking.id)) {
         throw new AppError('Le jeton ne correspond pas au billet.', 401, 'TICKET_BINDING_INVALID');

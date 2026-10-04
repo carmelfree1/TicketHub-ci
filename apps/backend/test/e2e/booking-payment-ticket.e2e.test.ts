@@ -14,7 +14,6 @@ test('traveler can book and pay, then a partner can consume the issued ticket on
   process.env.GENIUSPAY_API_KEY = 'mock-geniuspay-key';
   process.env.GENIUSPAY_API_SECRET = 'mock-geniuspay-secret';
   process.env.GENIUSPAY_API_BASE_URL = 'https://pay.genius.ci/api/v1/merchant';
-  process.env.PARTNER_INVITE_CODE = 'e2e-partner-invite-code';
   process.env.WEB_ORIGIN = 'http://localhost:3000';
   process.env.APP_URL = 'http://localhost:3000';
   process.env.REDIS_URL = '';
@@ -133,13 +132,17 @@ test('traveler can book and pay, then a partner can consume the issued ticket on
     assert.equal(ticket.status, 'active');
     assert.ok(ticket.qrPayload);
 
+    // Partners exist only through an invitation issued by the company that sold the ticket.
+    const { createProviderInvite } = await import('../../src/modules/providers/provider-access.js');
+    const sold = await database.prisma.booking.findUniqueOrThrow({ where: { id: booking.id }, include: { busTrip: true } });
+    const invite = await createProviderInvite({ providerId: sold.busTrip!.providerId, role: 'scanner', ttlDays: 1 });
     const partnerRegistration = await api('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({
         fullName: 'Partenaire E2E',
         phone: `0${String(randomInt(0, 1_000_000_000)).padStart(9, '0')}`,
         password: 'Test-only-password-482!',
-        partnerInviteCode: process.env.PARTNER_INVITE_CODE,
+        partnerInviteCode: invite.code,
       }),
     });
     assert.equal(partnerRegistration.status, 201, await partnerRegistration.clone().text());

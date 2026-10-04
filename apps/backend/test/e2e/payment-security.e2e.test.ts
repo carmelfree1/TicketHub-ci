@@ -7,12 +7,10 @@ const testDatabaseUrl = process.env.TEST_DATABASE_URL;
 describe('payment, webhook and booking invariants', { skip: !testDatabaseUrl, timeout: 120_000 }, () => {
   let ctx: Awaited<ReturnType<typeof startE2eContext>>;
   let traveler: Awaited<ReturnType<typeof ctx.registerTraveler>>;
-  let partner: Awaited<ReturnType<typeof ctx.registerPartner>>;
 
   before(async () => {
     ctx = await startE2eContext(testDatabaseUrl!);
     traveler = await ctx.registerTraveler();
-    partner = await ctx.registerPartner();
   });
 
   after(async () => {
@@ -184,36 +182,39 @@ describe('payment, webhook and booking invariants', { skip: !testDatabaseUrl, ti
   });
 
   describe('ticket scanning', () => {
+    /** A paid ticket plus a scanner who works for the company that sold it. */
     async function issuedTicket() {
       const { booking, reference } = await paidBooking();
       await ctx.sendWebhook({ reference, bookingId: booking.id, amount: booking.amount_xof });
       const [ticket] = await ctx.walletTickets(traveler, booking.id);
       assert.ok(ticket?.qrPayload);
-      return ticket;
+      const scanner = await ctx.registerPartnerFor(await ctx.providerOfBooking(booking.id));
+      return { ticket, scanner };
     }
 
-    const scan = (token: string, session = partner) => ctx.api('/api/partner/scans', { method: 'POST', body: JSON.stringify({ token }) }, session);
+    const scan = (token: string, session: Awaited<ReturnType<typeof ctx.registerTraveler>>) =>
+      ctx.api('/api/partner/scans', { method: 'POST', body: JSON.stringify({ token }) }, session);
 
     it('accepts a concurrent burst of scans for the same ticket exactly once', async () => {
-      const ticket = await issuedTicket();
-      const responses = await Promise.all(Array.from({ length: 6 }, () => scan(ticket.qrPayload)));
+      const { ticket, scanner } = await issuedTicket();
+      const responses = await Promise.all(Array.from({ length: 6 }, () => scan(ticket.qrPayload, scanner)));
       const statuses = responses.map((response) => response.status);
       assert.equal(statuses.filter((status) => status === 200).length, 1, `statuses: ${statuses.join(',')}`);
       assert.ok(statuses.filter((status) => status !== 200).every((status) => status === 409), `statuses: ${statuses.join(',')}`);
     });
 
     it('rejects a scan from a traveler account', async () => {
-      const ticket = await issuedTicket();
+      const { ticket } = await issuedTicket();
       const response = await scan(ticket.qrPayload, traveler);
       assert.equal(response.status, 403);
     });
 
     it('rejects a scan without authentication and a forged token', async () => {
-      const ticket = await issuedTicket();
+      const { ticket, scanner } = await issuedTicket();
       const anonymous = await ctx.api('/api/partner/scans', { method: 'POST', body: JSON.stringify({ token: ticket.qrPayload }) });
       assert.equal(anonymous.status, 401);
       const [payload] = ticket.qrPayload.split('.');
-      const forged = await scan(`${payload}.${'A'.repeat(43)}`);
+      const forged = await scan(`${payload}.${'A'.repeat(43)}`, scanner);
       assert.equal(forged.status, 401);
     });
   });

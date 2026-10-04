@@ -1,12 +1,16 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { formatXof } from '@tickethub/shared';
-import { type ManifestPassenger, type TripDeparture } from '@/types';
-import { ApiError, type PartnerManifestRecord } from '@/services/api';
-import { catalogApi } from '@/features/catalog/api';
+import { type ManifestPassenger } from '@/types';
+import { ApiError, type PartnerManifestRecord, type PartnerTrip } from '@/services/api';
 import { ticketsApi } from '@/features/tickets/api';
 
+const timeFormat = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Abidjan' });
+const dayFormat = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', timeZone: 'Africa/Abidjan' });
+const departTime = (value: string) => timeFormat.format(new Date(value));
+const departDay = (value: string) => dayFormat.format(new Date(value));
+
 export const PartnerManifestScreen: React.FC = () => {
-  const [trips, setTrips] = useState<TripDeparture[]>([]);
+  const [trips, setTrips] = useState<PartnerTrip[]>([]);
   const [tripId, setTripId] = useState('');
   const [records, setRecords] = useState<PartnerManifestRecord[]>([]);
   const [loadingTrips, setLoadingTrips] = useState(true);
@@ -19,14 +23,16 @@ export const PartnerManifestScreen: React.FC = () => {
 
   useEffect(() => {
     let active = true;
-    catalogApi.trips()
+    ticketsApi.partnerTrips()
       .then((result) => {
         if (!active) return;
         setTrips(result);
         setTripId((current) => current || result[0]?.id || '');
       })
       .catch((cause: unknown) => {
-        if (active) setError(cause instanceof Error ? cause.message : 'Impossible de charger les départs.');
+        if (active) setError(cause instanceof ApiError && cause.code === 'NO_PROVIDER'
+          ? 'Votre compte n’est rattaché à aucune société. Utilisez le code d’invitation fourni par votre société.'
+          : cause instanceof Error ? cause.message : 'Impossible de charger les départs.');
       })
       .finally(() => { if (active) setLoadingTrips(false); });
     return () => { active = false; };
@@ -44,7 +50,9 @@ export const PartnerManifestScreen: React.FC = () => {
       .then((result) => { if (active) setRecords(result); })
       .catch((cause: unknown) => {
         if (!active) return;
-        setError(cause instanceof ApiError && cause.status === 403
+        setError(cause instanceof ApiError && cause.code === 'WRONG_PROVIDER'
+          ? 'Ce départ appartient à une autre société.'
+          : cause instanceof ApiError && cause.status === 403
           ? 'Cette session ne dispose pas du rôle partenaire.'
           : cause instanceof Error ? cause.message : 'Impossible de charger le manifeste.');
       })
@@ -109,8 +117,8 @@ export const PartnerManifestScreen: React.FC = () => {
   };
 
   const handleShare = () => {
-    const route = selectedTrip ? `${selectedTrip.departCity} → ${selectedTrip.arrivalCity}` : 'trajet';
-    const text = encodeURIComponent(`Manifeste TicketHub CI · ${route} · ${passengers.length} billet(s), ${boardedCount} contrôlé(s), départ ${selectedTrip?.departTime || ''}.`);
+    const route = selectedTrip ? `${selectedTrip.departCity} - ${selectedTrip.arrivalCity}` : 'trajet';
+    const text = encodeURIComponent(`Manifeste TicketHub CI · ${route} · ${passengers.length} billet(s), ${boardedCount} contrôlé(s), départ ${selectedTrip ? departTime(selectedTrip.departAt) : ''}.`);
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank', 'noopener,noreferrer');
   };
 
@@ -127,7 +135,7 @@ export const PartnerManifestScreen: React.FC = () => {
         <label htmlFor="manifest-trip" className="font-headline text-[11px] font-bold text-[#0b1c30]">Départ à contrôler</label>
         <select id="manifest-trip" value={tripId} onChange={(event) => setTripId(event.target.value)} disabled={loadingTrips || trips.length === 0} className="h-11 w-full px-3 rounded-xl bg-[#eff4ff] border border-[#dce9ff] font-body text-[12px] text-[#0b1c30]">
           {trips.length === 0 && <option value="">Aucun départ disponible</option>}
-          {trips.map((trip) => <option key={trip.id} value={trip.id}>{trip.departTime} · {trip.departCity} → {trip.arrivalCity} · {trip.carrier}</option>)}
+          {trips.map((trip) => <option key={trip.id} value={trip.id}>{departDay(trip.departAt)} {departTime(trip.departAt)} · {trip.departCity} - {trip.arrivalCity} · {trip.seatsSold}/{trip.seatCapacity} places</option>)}
         </select>
         {selectedTrip && <p className="font-body text-[11px] text-[#5a4136]">{selectedTrip.departAt ? new Intl.DateTimeFormat('fr-FR', { dateStyle: 'full' }).format(new Date(selectedTrip.departAt)) : ''} · {selectedTrip.departStation} → {selectedTrip.arrivalStation}</p>}
       </section>

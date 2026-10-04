@@ -23,3 +23,7 @@ The frontend calls relative `/api` URLs. Vite proxies these paths to port 3001 d
 
 `vite-plugin-pwa` precaches the app shell and caches Google font files. The service worker never stores `/api` responses. A new version is offered through a banner and applied only on consent, so it cannot interrupt a payment. The last loaded wallet is kept in IndexedDB so a ticket can be shown without network, and is deleted on logout. Purchases always require a connection. Browsers only run the service worker over HTTPS (or localhost).
 
+## Company scoping
+
+Partner features are filtered by company membership, never by role alone. See "Companies, partner accounts and commissions" in `operations.md`.
+

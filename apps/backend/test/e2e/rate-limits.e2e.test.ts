@@ -50,7 +50,7 @@ describe('sensitive endpoint rate limits', { skip: !testDatabaseUrl, timeout: 12
   });
 
   it('limits scanning per partner', async () => {
-    const partner = await ctx.registerPartner();
+    const partner = await ctx.registerPartnerFor(await ctx.providerIdByCode('UTB'));
     const scan = () => ctx.api('/api/partner/scans', { method: 'POST', body: JSON.stringify({ ticketCode: 'TKH-AAAAAA-BBBBBB' }) }, partner);
     for (let attempt = 0; attempt < 3; attempt += 1) assert.equal((await scan()).status, 404);
     const blocked = await scan();

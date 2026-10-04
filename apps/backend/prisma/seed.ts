@@ -11,7 +11,14 @@ function dateInDays(days: number): Date {
   return date;
 }
 
+const DEMO_ORGANIZER_CODE = 'DEMO-EVENTS';
+
 async function seed(): Promise<void> {
+  await db.provider.upsert({
+    where: { code: DEMO_ORGANIZER_CODE },
+    create: { id: DEMO_ORGANIZER_CODE, code: DEMO_ORGANIZER_CODE, name: 'Organisateur de démonstration', status: 'active' },
+    update: {},
+  });
   for (const provider of new Map(DEMO_TRIPS.map((trip) => [trip.carrierCode, { code: trip.carrierCode, name: trip.carrier }])).values()) {
     await db.provider.upsert({
       where: { code: provider.code },
@@ -19,6 +26,13 @@ async function seed(): Promise<void> {
       update: { name: provider.name, status: 'active' },
     });
   }
+
+  const providerIds = new Map((await db.provider.findMany({ select: { id: true, code: true } })).map((provider) => [provider.code, provider.id]));
+  const providerIdFor = (code: string): string => {
+    const id = providerIds.get(code);
+    if (!id) throw new Error(`Unknown provider ${code}`);
+    return id;
+  };
 
   for (let offset = 1; offset <= 14; offset += 1) {
     const day = dateInDays(offset);
@@ -31,7 +45,7 @@ async function seed(): Promise<void> {
       await db.busTrip.upsert({
         where: { id },
         create: {
-          id, carrier: trip.carrier, carrierCode: trip.carrierCode, serviceTitle: trip.serviceTitle,
+          id, providerId: providerIdFor(trip.carrierCode), carrier: trip.carrier, carrierCode: trip.carrierCode, serviceTitle: trip.serviceTitle,
           departAt, departStation: trip.departStation, departCity: trip.departCity,
           arrivalStation: trip.arrivalStation, arrivalCity: trip.arrivalCity, arrivalTime: trip.arrivalTime,
           duration: trip.duration, priceXof: trip.price, seatCapacity: 41,
@@ -46,7 +60,7 @@ async function seed(): Promise<void> {
     await db.event.upsert({
       where: { id: event.id },
       create: {
-        id: event.id, title: event.title, eventType: event.eventType, description: event.description,
+        id: event.id, providerId: providerIdFor(DEMO_ORGANIZER_CODE), title: event.title, eventType: event.eventType, description: event.description,
         venue: event.venue, city: event.city, startsAt: new Date(event.startsAt), imageUrl: event.imageUrl,
       },
       update: {},

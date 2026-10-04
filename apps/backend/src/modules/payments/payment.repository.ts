@@ -2,6 +2,8 @@ import type { GeniusPayAdapterInput } from '../../integrations/geniuspay/geniusp
 import { randomUUID } from 'node:crypto';
 import { prisma, type DbTransaction, transaction } from '../../config/database.js';
 import { AppError } from '../../core/errors/AppError.js';
+import { logger } from '../../core/logger/logger.js';
+import type { Prisma } from '../../generated/prisma/client.js';
 import type { GeniusPayPayment, GeniusPayWebhookPayload } from '../../integrations/geniuspay/geniuspay.types.js';
 import { issueTicketsForBooking } from '../tickets/ticket.service.js';
 import { orderRepository } from '../orders/order.repository.js';
@@ -90,6 +92,19 @@ export const paymentRepository = {
         },
       });
       if (updated.count !== 1) throw new AppError('Le checkout n’a pas pu être associé à la réservation.', 409, 'PAYMENT_STATE_CHANGED');
+      const created = await db.payment.findUniqueOrThrow({ where: { bookingId }, select: { id: true, amountXof: true } });
+      await db.paymentTransaction.create({
+        data: {
+          id: randomUUID(),
+          paymentId: created.id,
+          kind: 'checkout',
+          eventType: 'checkout.created',
+          amountXof: created.amountXof,
+          currency: 'XOF',
+          status: 'pending',
+          payload: { reference: providerPayment.reference, status: providerPayment.status ?? 'pending' },
+        },
+      }).catch((error: unknown) => logger.warn({ err: error, bookingId }, 'Journal de paiement non écrit'));
       return { bookingId, checkoutUrl: providerPayment.checkoutUrl, providerReference: providerPayment.reference, status: 'pending' };
     } catch (error) {
       // Retain the idempotency key so the next attempt can safely retry the provider request.
@@ -116,6 +131,21 @@ export const paymentRepository = {
       if (Number(data.amount) !== payment.amountXof || data.currency !== 'XOF') {
         throw new AppError('Montant ou devise webhook inattendu.', 409, 'PAYMENT_AMOUNT_MISMATCH');
       }
+
+      // The exact provider payload is kept next to the decision it caused, for reconciliation and disputes.
+      await tx.paymentTransaction.create({
+        data: {
+          id: randomUUID(),
+          paymentId: payment.id,
+          kind: 'webhook',
+          providerEventId: deliveryId,
+          eventType,
+          amountXof: Number.isFinite(Number(data.amount)) ? Number(data.amount) : null,
+          currency: data.currency ?? null,
+          status: data.status ?? null,
+          payload: payload as unknown as Prisma.InputJsonObject,
+        },
+      });
 
       const success = eventType === 'payment.success' && data.status === 'completed';
       const failure = ['payment.failed', 'payment.cancelled', 'payment.expired'].includes(eventType);

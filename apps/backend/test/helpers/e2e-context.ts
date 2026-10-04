@@ -70,7 +70,20 @@ export async function startE2eContext(databaseUrl: string) {
   }
 
   const registerTraveler = (name = 'Voyageur Test') => register(name);
-  const registerPartner = (name = 'Partenaire Test') => register(name, { partnerInviteCode: process.env.PARTNER_INVITE_CODE });
+  /** Partner accounts exist only through a company invitation, exactly as in production. */
+  async function registerPartnerFor(providerId: string, role: 'owner' | 'manager' | 'scanner' = 'scanner', name = 'Partenaire Test'): Promise<Session> {
+    const { createProviderInvite } = await import('../../src/modules/providers/provider-access.js');
+    const invite = await createProviderInvite({ providerId, role, ttlDays: 1 });
+    return register(name, { partnerInviteCode: invite.code });
+  }
+
+  const providerIdByCode = async (code: string) => (await database.prisma.provider.findUniqueOrThrow({ where: { code } })).id;
+
+  /** The company that sold a booking, so a scanner of the right company can be created for it. */
+  async function providerOfBooking(bookingId: string): Promise<string> {
+    const booking = await database.prisma.booking.findUniqueOrThrow({ where: { id: bookingId }, include: { busTrip: true, event: true } });
+    return (booking.busTrip?.providerId ?? booking.event?.providerId)!;
+  }
 
   const shuffled = <T,>(items: T[]): T[] => items.map((item) => ({ item, key: Math.random() })).sort((x, y) => x.key - y.key).map(({ item }) => item);
 
@@ -168,7 +181,9 @@ export async function startE2eContext(databaseUrl: string) {
     prisma: database.prisma,
     api,
     registerTraveler,
-    registerPartner,
+    registerPartnerFor,
+    providerIdByCode,
+    providerOfBooking,
     freeSeats,
     reserve,
     reserveOk,

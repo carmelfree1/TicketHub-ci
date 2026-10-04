@@ -20,6 +20,7 @@ model User {
   failedLoginCount Int       @default(0) @map("failed_login_count")
   lockedUntil      DateTime? @map("locked_until") @db.Timestamptz(6)
   mfaBackupCodes   MfaBackupCode[]
+  providerMemberships ProviderMember[]
   auditLogs        AuditLog[]
   sessions     Session[]
   bookings     Booking[]
@@ -48,6 +49,12 @@ model Provider {
   code      String   @unique @db.VarChar(40)
   status    String   @default("active") @db.VarChar(20)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  members   ProviderMember[]
+  invites   ProviderInvite[]
+  busTrips  BusTrip[]
+  events    Event[]
+  orderItems OrderItem[]
+  commissionRules CommissionRule[]
 
   @@map("providers")
 }
@@ -70,9 +77,12 @@ model BusTrip {
   vehicle       String    @db.VarChar(120)
   registration  String    @db.VarChar(80)
   createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  providerId    String    @map("provider_id")
+  provider      Provider  @relation(fields: [providerId], references: [id])
   bookings      Booking[]
 
   @@index([departAt])
+  @@index([providerId, departAt])
   @@map("bus_trips")
 }
 
@@ -87,10 +97,13 @@ model Event {
   imageUrl    String                @default("") @map("image_url") @db.Text
   status      String                @default("published") @db.VarChar(20)
   createdAt   DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  providerId  String                @map("provider_id")
+  provider    Provider              @relation(fields: [providerId], references: [id])
   categories  EventTicketCategory[]
   bookings    Booking[]
 
   @@index([startsAt])
+  @@index([providerId, startsAt])
   @@map("events")
 }
 
@@ -136,6 +149,7 @@ model Booking {
 }
 
 model Payment {
+  transactions      PaymentTransaction[]
   id                String   @id
   bookingId         String   @unique @map("booking_id")
   provider          String   @default("geniuspay") @db.VarChar(40)
@@ -164,6 +178,7 @@ model Order {
   booking   Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
   refund    Refund?
+  items     OrderItem[]
 
   @@index([userId, createdAt(sort: Desc)])
   @@map("orders")
@@ -283,4 +298,88 @@ model AuditLog {
   @@index([userId, createdAt])
   @@index([resourceType, resourceId])
   @@map("audit_logs")
+}
+
+model ProviderMember {
+  providerId String   @map("provider_id")
+  userId     String   @map("user_id")
+  role       String   @db.VarChar(20)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  provider   Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([providerId, userId])
+  @@index([userId])
+  @@map("provider_members")
+}
+
+model ProviderInvite {
+  id         String    @id
+  providerId String    @map("provider_id")
+  codeHash   String    @unique @map("code_hash") @db.VarChar(64)
+  role       String    @db.VarChar(20)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  usedAt     DateTime? @map("used_at") @db.Timestamptz(6)
+  usedBy     String?   @map("used_by")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  provider   Provider  @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([providerId])
+  @@map("provider_invites")
+}
+
+/// Snapshot of what was sold, taken when the order is paid, so later catalog or commission changes never rewrite history.
+model OrderItem {
+  id                String   @id
+  orderId           String   @map("order_id")
+  providerId        String   @map("provider_id")
+  productType       String   @map("product_type") @db.VarChar(20)
+  busTripId         String?  @map("bus_trip_id")
+  eventId           String?  @map("event_id")
+  ticketCategoryId  String?  @map("ticket_category_id")
+  description       String   @db.VarChar(300)
+  quantity          Int
+  unitPriceXof      Int      @map("unit_price_xof")
+  lineTotalXof      Int      @map("line_total_xof")
+  commissionBps     Int      @map("commission_bps")
+  commissionXof     Int      @map("commission_xof")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  provider          Provider @relation(fields: [providerId], references: [id])
+
+  @@index([orderId])
+  @@index([providerId, createdAt])
+  @@map("order_items")
+}
+
+model CommissionRule {
+  id          String    @id
+  providerId  String?   @map("provider_id")
+  productType String?   @map("product_type") @db.VarChar(20)
+  rateBps     Int       @map("rate_bps")
+  minXof      Int?      @map("min_xof")
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  provider    Provider? @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@index([active, providerId, productType])
+  @@map("commission_rules")
+}
+
+/// Append-only journal of every payment related exchange with the payment provider, kept for reconciliation and disputes.
+model PaymentTransaction {
+  id              String   @id
+  paymentId       String   @map("payment_id")
+  kind            String   @db.VarChar(30)
+  providerEventId String?  @unique @map("provider_event_id") @db.VarChar(200)
+  eventType       String   @map("event_type") @db.VarChar(100)
+  amountXof       Int?     @map("amount_xof")
+  currency        String?  @db.VarChar(3)
+  status          String?  @db.VarChar(30)
+  payload         Json     @default("{}") @db.JsonB
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  payment         Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId, createdAt])
+  @@map("payment_transactions")
 }

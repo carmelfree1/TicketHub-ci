@@ -1,12 +1,12 @@
-import { createHash, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { normalizeCiPhone as normalizeIvorianPhone } from '@tickethub/shared';
-import { env } from '../../config/env.js';
 import { appConfig } from '../../config/app.config.js';
 import { AppError } from '../../core/errors/AppError.js';
 import { signJwt } from '../../core/security/jwt.js';
 import { hashPassword, verifyPassword } from '../../core/security/password.js';
 import { logger } from '../../core/logger/logger.js';
 import { auditService, type AuditEntry } from '../audit/audit.service.js';
+import { hashInviteCode } from '../providers/provider-access.js';
 import { securityEventService } from '../security/security-event.service.js';
 import { authRepository } from './auth.repository.js';
 import { mfaRepository } from './mfa.repository.js';
@@ -22,13 +22,6 @@ function normalizePhone(value: string): string {
   const normalized = normalizeIvorianPhone(value);
   if (!normalized) throw new AppError('Numéro ivoirien invalide (format attendu : 07 00 00 00 00).', 400, 'INVALID_PHONE');
   return normalized;
-}
-
-function matchesInviteCode(value?: string): boolean {
-  if (!env.PARTNER_INVITE_CODE || !value) return false;
-  const provided = Buffer.from(value);
-  const expected = Buffer.from(env.PARTNER_INVITE_CODE);
-  return provided.length === expected.length && timingSafeEqual(provided, expected);
 }
 
 async function createSession(user: PublicUser) {
@@ -56,16 +49,22 @@ export const authService = {
   async register(input: RegisterInput, context: Context = {}): Promise<{ user: PublicUser; token: string }> {
     const phone = normalizePhone(input.phone);
     const passwordHash = await authRepository.hashPassword(input.password);
-    const role: UserRole = matchesInviteCode(input.partnerInviteCode) ? 'partner' : 'traveler';
-    const user = await authRepository.createUser({
-      id: randomUUID(),
-      fullName: input.fullName.trim(),
-      phone,
-      password: passwordHash,
-      role,
-    }) as PublicUser;
+    const account = { id: randomUUID(), fullName: input.fullName.trim(), phone, password: passwordHash };
+    // A code that is present but wrong is an error, never a silent downgrade to a traveler account.
+    const invite = input.partnerInviteCode?.trim()
+      ? await authRepository.createPartnerWithInvite(account, hashInviteCode(input.partnerInviteCode))
+      : null;
+    const user = (invite ? invite.user : await authRepository.createUser({ ...account, role: 'traveler' })) as PublicUser;
+    const role: UserRole = invite ? 'partner' : 'traveler';
     const token = await createSession(user);
-    await auditService.record({ action: 'auth.register', userId: user.id, resourceType: 'user', resourceId: user.id, metadata: { role }, ...context });
+    await auditService.record({
+      action: 'auth.register',
+      userId: user.id,
+      resourceType: 'user',
+      resourceId: user.id,
+      metadata: invite ? { role, providerId: invite.providerId, providerRole: invite.providerRole } : { role },
+      ...context,
+    });
     logger.info({ userId: user.id, role }, 'Compte créé');
     return { user, token };
   },

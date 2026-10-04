@@ -22,4 +22,7 @@ export const ticketsApi = {
   list,
   scan: api.scanTicket,
   partnerManifest: api.partnerManifest,
+  partnerMe: api.partnerMe,
+  partnerTrips: api.partnerTrips,
+  partnerStats: api.partnerStats,
 };

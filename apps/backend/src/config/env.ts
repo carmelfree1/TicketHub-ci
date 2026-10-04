@@ -13,7 +13,6 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET doit contenir au moins 32 caractères.'),
   TICKET_SIGNING_SECRET: z.string().min(32, 'TICKET_SIGNING_SECRET doit contenir au moins 32 caractères.'),
   DATA_ENCRYPTION_KEY: optionalSecret,
-  PARTNER_INVITE_CODE: optionalSecret,
   GENIUSPAY_API_KEY: optionalSecret,
   GENIUSPAY_API_SECRET: optionalSecret,
   GENIUSPAY_WEBHOOK_SECRET: optionalSecret,
