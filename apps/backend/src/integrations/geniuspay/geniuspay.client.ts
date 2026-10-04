@@ -1,6 +1,6 @@
 import { env } from '../../config/env.js';
 import { AppError } from '../../core/errors/AppError.js';
-import type { GeniusPayCreatePaymentInput, GeniusPayPayment } from './geniuspay.types.js';
+import type { GeniusPayCreatePaymentInput, GeniusPayPayment, GeniusPayPaymentStatus } from './geniuspay.types.js';
 
 export async function createGeniusPayPayment(input: GeniusPayCreatePaymentInput): Promise<GeniusPayPayment> {
   if (!env.GENIUSPAY_API_KEY || !env.GENIUSPAY_API_SECRET) {
@@ -36,4 +36,26 @@ export async function createGeniusPayPayment(input: GeniusPayCreatePaymentInput)
     throw new AppError(result.error?.message || 'La réponse du checkout GeniusPay est invalide.', 502, 'PAYMENT_PROVIDER_ERROR');
   }
   return { reference, checkoutUrl, status: result.data?.status };
+}
+
+/**
+ * Asks the gateway for the current state of one payment (GET /payments/{reference}). Used to catch up when a webhook
+ * never arrived. Returns null when the gateway does not know the reference.
+ */
+export async function getGeniusPayPayment(reference: string): Promise<GeniusPayPaymentStatus | null> {
+  if (!env.GENIUSPAY_API_KEY || !env.GENIUSPAY_API_SECRET) {
+    throw new AppError('La passerelle GeniusPay n’est pas configurée.', 503, 'PAYMENT_PROVIDER_NOT_CONFIGURED');
+  }
+  const response = await fetch(`${env.GENIUSPAY_API_BASE_URL.replace(/\/$/, '')}/payments/${encodeURIComponent(reference)}`, {
+    headers: { 'X-API-Key': env.GENIUSPAY_API_KEY, 'X-API-Secret': env.GENIUSPAY_API_SECRET },
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (response.status === 404) return null;
+  const result = await response.json().catch(() => ({})) as { data?: { reference?: string; status?: string; amount?: number | string; currency?: string } };
+  const data = result.data;
+  const amount = Number(data?.amount);
+  if (!response.ok || !data?.reference || typeof data.status !== 'string' || !Number.isFinite(amount)) {
+    throw new AppError('La réponse de consultation GeniusPay est invalide.', 502, 'PAYMENT_PROVIDER_ERROR');
+  }
+  return { reference: data.reference, status: data.status, amount, currency: data.currency ?? 'XOF' };
 }

@@ -225,6 +225,9 @@ model Settlement {
   netXof        Int      @map("net_xof")
   status        String   @default("pending") @db.VarChar(30)
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  approvedAt    DateTime? @map("approved_at") @db.Timestamptz(6)
+  paidAt        DateTime? @map("paid_at") @db.Timestamptz(6)
+  payoutReference String? @map("payout_reference") @db.VarChar(160)
 
   @@unique([providerCode, periodStart, periodEnd])
   @@index([providerCode, periodStart])

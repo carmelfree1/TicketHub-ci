@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma } from '../../config/database.js';
+import { prisma, type DbTransaction } from '../../config/database.js';
 import type { Prisma } from '../../generated/prisma/client.js';
 import type { CreateNotificationInput } from './notification.types.js';
 
@@ -9,6 +9,10 @@ const STALE_DELIVERY_MS = 15 * 60_000;
 export const notificationRepository = {
   create(input: CreateNotificationInput) {
     return db.notification.create({ data: { id: randomUUID(), ...input, payload: input.payload as Prisma.InputJsonObject, status: 'queued' } });
+  },
+  /** Inserts the notification in the caller's transaction so it exists if and only if the business change committed. */
+  createIn(tx: DbTransaction, input: CreateNotificationInput) {
+    return tx.notification.create({ data: { id: randomUUID(), ...input, payload: input.payload as Prisma.InputJsonObject, status: 'queued' }, select: { id: true } });
   },
   findById(id: string) { return db.notification.findUnique({ where: { id }, include: { user: true } }); },
   pending(limit = 50, now = new Date()) {

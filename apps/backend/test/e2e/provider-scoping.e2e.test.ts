@@ -31,7 +31,7 @@ describe('company scoping, invitations, sale snapshots and settlements', { skip:
       data: {
         id: `trip-${code}`, providerId: provider.id, carrier: provider.name, carrierCode: code, serviceTitle: 'Test',
         departAt: new Date(Date.now() + 48 * 60 * 60 * 1000), departStation: 'Gare A', departCity: 'Abidjan',
-        arrivalStation: 'Gare B', arrivalCity: 'Bouaké', arrivalTime: '12:00', duration: '4h', priceXof: price,
+        arrivalStation: 'Gare B', arrivalCity: `Ville ${code}`, arrivalTime: '12:00', duration: '4h', priceXof: price,
         seatCapacity: 40, vehicle: 'Bus', registration: code,
       },
     });
@@ -121,23 +121,24 @@ describe('company scoping, invitations, sale snapshots and settlements', { skip:
   });
 
   describe('invitations', () => {
-    const register = (code: string | undefined) =>
+    const newPhone = () => `0${String(Math.floor(Math.random() * 1_000_000_000)).padStart(9, '0')}`;
+    const register = (code: string | undefined, phone = newPhone()) =>
       ctx.api('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           fullName: 'Invité Test',
-          phone: `0${String(Math.floor(Math.random() * 1_000_000_000)).padStart(9, '0')}`,
+          phone,
           password: 'Test-only-password-482!',
           ...(code ? { partnerInviteCode: code } : {}),
         }),
       });
 
     it('rejects an unknown code instead of silently creating a traveler account', async () => {
-      const before = await ctx.prisma.user.count();
-      const response = await register('INV-DOESNOTEXIST');
+      const phone = newPhone();
+      const response = await register('INV-DOESNOTEXIST', phone);
       assert.equal(response.status, 400);
       assert.equal(await errorCode(response), 'INVALID_INVITE');
-      assert.equal(await ctx.prisma.user.count(), before, 'no account is created for a bad code');
+      assert.equal(await ctx.prisma.user.findUnique({ where: { phone: `+225${phone}` } }), null, 'no account is created for a bad code');
     });
 
     it('works once, then the code is spent', async () => {
@@ -174,6 +175,40 @@ describe('company scoping, invitations, sale snapshots and settlements', { skip:
       const invite = await createProviderInvite({ providerId: suspended.provider.id, role: 'scanner', ttlDays: 1 });
       await ctx.prisma.provider.update({ where: { id: suspended.provider.id }, data: { status: 'suspended' } });
       assert.equal(await errorCode(await register(invite.code)), 'INVALID_INVITE');
+    });
+  });
+
+  describe('a suspended company', () => {
+    it('disappears from the catalog and can no longer sell', async () => {
+      const company = await createCompany('U');
+      const event = await ctx.prisma.event.create({
+        data: {
+          id: `evt-${company.provider.code}`, providerId: company.provider.id, title: 'Soirée test', eventType: 'concert', venue: 'Salle', city: 'Abidjan',
+          startsAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
+          categories: { create: [{ id: `cat-${company.provider.code}`, name: 'Standard', priceXof: 2_000, capacity: 50 }] },
+        },
+      });
+      const listed = async () => ({
+        trips: (await json<{ data: Array<{ id: string }> }>(await ctx.api(`/api/catalog/trips?to=${encodeURIComponent(company.trip.arrivalCity)}`))).data.some((trip) => trip.id === company.trip.id),
+        events: (await json<{ data: Array<{ id: string }> }>(await ctx.api('/api/catalog/events'))).data.some((item) => item.id === event.id),
+      });
+      assert.deepEqual(await listed(), { trips: true, events: true });
+
+      await ctx.prisma.provider.update({ where: { id: company.provider.id }, data: { status: 'suspended' } });
+      assert.deepEqual(await listed(), { trips: false, events: false });
+      assert.equal((await ctx.api(`/api/catalog/trips/${company.trip.id}/seats`)).status, 404);
+      const trip = await ctx.reserve(traveler, company.trip.id, [1]);
+      assert.equal(trip.status, 404);
+      assert.equal(await errorCode(trip), 'TRIP_UNAVAILABLE');
+      const eventBooking = await ctx.api('/api/bookings/event', {
+        method: 'POST',
+        body: JSON.stringify({ eventId: event.id, categoryId: `cat-${company.provider.code}`, quantity: 1 }),
+      }, traveler);
+      assert.equal(eventBooking.status, 404);
+      assert.equal(await errorCode(eventBooking), 'EVENT_UNAVAILABLE');
+
+      await ctx.prisma.provider.update({ where: { id: company.provider.id }, data: { status: 'active' } });
+      assert.deepEqual(await listed(), { trips: true, events: true }, 'reactivation brings the offers back');
     });
   });
 
@@ -276,8 +311,9 @@ describe('company scoping, invitations, sale snapshots and settlements', { skip:
 
       // Re-running recomputes a pending settlement but never touches an approved one.
       await settlementService.generate(start, end);
-      assert.equal(await ctx.prisma.settlement.count({ where: { providerCode: company.provider.code } }), 1);
-      await ctx.prisma.settlement.update({ where: { id: mine.id }, data: { status: 'approved' } });
+      // Other test files compute their own overlapping windows, so only this window is counted.
+      assert.equal(await ctx.prisma.settlement.count({ where: { providerCode: company.provider.code, periodStart: start, periodEnd: end } }), 1);
+      await settlementService.approve(mine.id);
       await sell(company.trip.id, [3]);
       await settlementService.generate(start, end);
       assert.equal((await ctx.prisma.settlement.findUniqueOrThrow({ where: { id: mine.id } })).grossXof, 20_000);

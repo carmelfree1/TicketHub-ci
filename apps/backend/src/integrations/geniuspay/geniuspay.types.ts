@@ -15,6 +15,14 @@ export interface GeniusPayPayment {
   status?: string;
 }
 
+/** Result of GET /payments/{reference}. Documented statuses: pending, processing, completed, failed, expired. */
+export interface GeniusPayPaymentStatus {
+  reference: string;
+  status: string;
+  amount: number;
+  currency: string;
+}
+
 export interface GeniusPayWebhookPayload {
   id?: string;
   event?: string;

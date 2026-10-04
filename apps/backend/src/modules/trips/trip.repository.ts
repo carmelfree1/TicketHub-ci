@@ -50,6 +50,7 @@ export const tripRepository = {
     }
     const trips = await db.busTrip.findMany({
       where: {
+        provider: { status: 'active' },
         departAt,
         ...(query.from ? { OR: [
           { departCity: { contains: query.from, mode: 'insensitive' } },
@@ -71,7 +72,7 @@ export const tripRepository = {
 
   async findForSeats(tripId: string, now = new Date()) {
     const trip = await db.busTrip.findFirst({
-      where: { id: tripId, departAt: { gt: now } },
+      where: { id: tripId, departAt: { gt: now }, provider: { status: 'active' } },
       include: { bookings: { where: liveBookingWhere(now), select: { seats: true } } },
     });
     if (!trip) return null;

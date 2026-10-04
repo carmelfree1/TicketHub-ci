@@ -25,6 +25,7 @@
     "apps/frontend/vite.config.ts",
     "apps/backend/src",
     "apps/backend/test",
+    "apps/backend/scripts",
     "apps/backend/prisma/seed.ts",
     "apps/backend/prisma.config.ts",
     "packages/shared/src",

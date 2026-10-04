@@ -4,9 +4,8 @@ import { prisma, type DbTransaction, transaction } from '../../config/database.j
 import { AppError } from '../../core/errors/AppError.js';
 import { logger } from '../../core/logger/logger.js';
 import type { Prisma } from '../../generated/prisma/client.js';
-import type { GeniusPayPayment, GeniusPayWebhookPayload } from '../../integrations/geniuspay/geniuspay.types.js';
-import { issueTicketsForBooking } from '../tickets/ticket.service.js';
-import { orderRepository } from '../orders/order.repository.js';
+import type { GeniusPayPayment, GeniusPayPaymentStatus, GeniusPayWebhookPayload } from '../../integrations/geniuspay/geniuspay.types.js';
+import { applyPaymentOutcome, outcomeForStatus, outcomeForWebhook } from './payment-outcome.js';
 import type { PaymentMethodId } from './payment.types.js';
 
 const db = prisma;
@@ -122,13 +121,18 @@ export const paymentRepository = {
         data: [{ deliveryId, eventType }],
         skipDuplicates: true,
       });
-      if (delivery.count === 0) return { accepted: true, duplicate: true };
+      if (delivery.count === 0) return { accepted: true, duplicate: true, notificationIds: [] as string[], partialRefund: false };
       const data = payload.data!;
       const bookingId = String(data.metadata?.booking_id || '');
       const [locked] = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM bookings WHERE id = ${bookingId} FOR UPDATE`;
       const payment = locked ? await tx.payment.findUnique({ where: { bookingId }, include: { booking: true } }) : null;
       if (!payment || payment.providerReference !== data.reference) throw new AppError('Le paiement ne correspond à aucune réservation.', 404, 'PAYMENT_NOT_FOUND');
-      if (Number(data.amount) !== payment.amountXof || data.currency !== 'XOF') {
+
+      // A refund event may carry the refunded amount, which can legitimately be lower than the payment.
+      const amount = Number(data.amount);
+      const isRefund = eventType === 'payment.refunded';
+      const amountMatches = isRefund ? Number.isFinite(amount) && amount > 0 && amount <= payment.amountXof : amount === payment.amountXof;
+      if (!amountMatches || data.currency !== 'XOF') {
         throw new AppError('Montant ou devise webhook inattendu.', 409, 'PAYMENT_AMOUNT_MISMATCH');
       }
 
@@ -140,36 +144,51 @@ export const paymentRepository = {
           kind: 'webhook',
           providerEventId: deliveryId,
           eventType,
-          amountXof: Number.isFinite(Number(data.amount)) ? Number(data.amount) : null,
+          amountXof: Number.isFinite(amount) ? amount : null,
           currency: data.currency ?? null,
           status: data.status ?? null,
           payload: payload as unknown as Prisma.InputJsonObject,
         },
       });
 
-      const success = eventType === 'payment.success' && data.status === 'completed';
-      const failure = ['payment.failed', 'payment.cancelled', 'payment.expired'].includes(eventType);
-      if (success && payment.status !== 'completed') {
-        const holdValid = payment.booking.status === 'pending_payment' && payment.booking.holdExpiresAt.getTime() > Date.now();
-        if (holdValid) {
-          await tx.payment.update({ where: { id: payment.id }, data: { status: 'completed', updatedAt: new Date() } });
-          const booking = await tx.booking.update({ where: { id: bookingId }, data: { status: 'paid' } });
-          await orderRepository.createFromBooking(tx, booking);
-          await issueTicketsForBooking(tx, bookingId);
-        } else {
-          await tx.payment.update({ where: { id: payment.id }, data: { status: 'needs_review', updatedAt: new Date() } });
-          await tx.booking.update({ where: { id: bookingId }, data: { status: 'needs_review' } });
-          await tx.order.updateMany({ where: { bookingId, status: 'pending_payment' }, data: { status: 'needs_review' } });
-        }
-      } else if (failure && payment.status === 'pending') {
-        const status = eventType === 'payment.expired' ? 'expired' : 'failed';
-        await tx.payment.update({ where: { id: payment.id }, data: { status, updatedAt: new Date() } });
-        if (payment.booking.status === 'pending_payment') {
-          await tx.booking.update({ where: { id: bookingId }, data: { status } });
-          await tx.order.updateMany({ where: { bookingId, status: 'pending_payment' }, data: { status } });
-        }
-      }
-      return { accepted: true, duplicate: false };
+      const partialRefund = isRefund && amount < payment.amountXof;
+      const outcome = partialRefund ? null : outcomeForWebhook(eventType, data.status);
+      const notificationIds = outcome ? await applyPaymentOutcome(tx, payment, outcome) : [];
+      return { accepted: true, duplicate: false, notificationIds, partialRefund };
+    }, { isolationLevel: 'Serializable', maxWait: 5_000, timeout: 20_000 });
+  },
+
+  /**
+   * Applies what a status lookup (GET /payments/{reference}) revealed for a payment still marked pending, for the
+   * case where the webhook never arrived. Same checks and same outcome code as the webhook path.
+   */
+  async applyProviderStatus(paymentId: string, remote: GeniusPayPaymentStatus) {
+    const none = (reason: string) => ({ applied: false, notificationIds: [] as string[], reason });
+    return transaction(async (tx: DbTransaction) => {
+      const found = await tx.payment.findUnique({ where: { id: paymentId }, select: { bookingId: true } });
+      if (!found) return none('unknown_payment');
+      await tx.$queryRaw`SELECT id FROM bookings WHERE id = ${found.bookingId} FOR UPDATE`;
+      const payment = await tx.payment.findUnique({ where: { id: paymentId }, include: { booking: true } });
+      if (!payment || payment.status !== 'pending') return none('not_pending');
+      if (payment.providerReference !== remote.reference) return none('reference_mismatch');
+      const outcome = outcomeForStatus(remote.status);
+      if (!outcome) return none('still_waiting');
+      if (outcome === 'success' && (remote.amount !== payment.amountXof || remote.currency !== 'XOF')) return none('amount_mismatch');
+      await tx.paymentTransaction.createMany({
+        data: [{
+          id: randomUUID(),
+          paymentId: payment.id,
+          kind: 'reconciliation',
+          providerEventId: `reconcile:${remote.reference}:${remote.status}`,
+          eventType: `lookup.${remote.status}`,
+          amountXof: remote.amount,
+          currency: remote.currency,
+          status: remote.status,
+          payload: remote as unknown as Prisma.InputJsonObject,
+        }],
+        skipDuplicates: true,
+      });
+      return { applied: true, notificationIds: await applyPaymentOutcome(tx, payment, outcome), reason: outcome };
     }, { isolationLevel: 'Serializable', maxWait: 5_000, timeout: 20_000 });
   },
 };

@@ -1,4 +1,5 @@
 import { Worker } from 'bullmq';
+import { withAdvisoryLock } from '../config/database.js';
 import { env } from '../config/env.js';
 import { redisConnection } from '../config/redis.js';
 import { logger } from '../core/logger/logger.js';
@@ -14,10 +15,11 @@ const timers: NodeJS.Timeout[] = [];
 const workers: Worker[] = [];
 let jobsStarted = false;
 
+/** Runs a job on this instance only if no other instance is running the same one right now. */
 async function safelyRun(label: string, work: () => Promise<unknown>): Promise<void> {
   try {
-    const result = await work();
-    logger.info({ result }, `${label} terminé`);
+    const outcome = await withAdvisoryLock(label, async () => ({ result: await work() }));
+    if (outcome) logger.info({ result: outcome.result }, `${label} terminé`);
   } catch (error) {
     logger.error({ err: error }, `${label} échoué`);
   }
@@ -42,7 +44,7 @@ export async function startJobs(): Promise<void> {
 
   timers.push(setInterval(() => { void safelyRun('Expiration réservations', expireReservationsJob); }, 60_000));
   timers.push(setInterval(() => { void safelyRun('Expiration commandes', expireOrdersJob); }, 60_000));
-  timers.push(setInterval(() => { void safelyRun('Rapprochement paiements', reconcilePaymentsJob); }, 5 * 60_000));
+  timers.push(setInterval(() => { void safelyRun('Rapprochement paiements', reconcilePaymentsJob); }, 2 * 60_000));
   timers.push(setInterval(() => { void safelyRun('Envoi notifications', sendPendingNotificationsJob); }, 60_000));
   timers.push(setInterval(() => { void safelyRun('Génération règlements quotidiens', generateDailySettlementsJob); }, 60 * 60_000));
   for (const timer of timers) timer.unref();

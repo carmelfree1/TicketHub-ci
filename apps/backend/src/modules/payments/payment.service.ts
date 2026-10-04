@@ -2,6 +2,8 @@ import { appConfig } from '../../config/app.config.js';
 import { verifyGeniusPayWebhook, parseGeniusPayWebhook } from '../../integrations/geniuspay/geniuspay.webhook.js';
 import { geniusPayAdapter } from '../../integrations/geniuspay/geniuspay.adapter.js';
 import { paymentQueue } from '../../queues/payment.queue.js';
+import { notificationService } from '../notifications/notification.service.js';
+import { securityEventService } from '../security/security-event.service.js';
 import { paymentRepository } from './payment.repository.js';
 import type { PaymentMethodId } from './payment.types.js';
 
@@ -28,6 +30,11 @@ export const paymentService = {
     verifyGeniusPayWebhook(input);
     const payload = parseGeniusPayWebhook(input.rawBody);
     // The signed payload id is the idempotency key; an unsigned delivery header is not trusted.
-    return paymentRepository.processWebhook(payload.id, payload.event, payload);
+    const result = await paymentRepository.processWebhook(payload.id, payload.event, payload);
+    if (result.partialRefund) {
+      await securityEventService.record({ eventType: 'payment.partial_refund_received', metadata: { severity: 'high', reference: payload.data.reference } });
+    }
+    notificationService.dispatch(result.notificationIds);
+    return { accepted: result.accepted, duplicate: result.duplicate };
   },
 };

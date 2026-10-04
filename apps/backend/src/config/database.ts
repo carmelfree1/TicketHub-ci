@@ -62,4 +62,24 @@ export async function disconnectDatabase(): Promise<void> {
   await pool.end();
 }
 
+/**
+ * Runs `work` only if no other API instance currently holds the same named lock (PostgreSQL session advisory lock).
+ * Scheduled jobs use it so that running several API instances does not multiply provider calls or notifications.
+ * Returns undefined when the lock is taken elsewhere.
+ */
+export async function withAdvisoryLock<T>(name: string, work: () => Promise<T>): Promise<T | undefined> {
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query<{ locked: boolean }>('SELECT pg_try_advisory_lock(hashtext($1)) AS locked', [`tickethub:${name}`]);
+    if (!rows[0]?.locked) return undefined;
+    try {
+      return await work();
+    } finally {
+      await client.query('SELECT pg_advisory_unlock(hashtext($1))', [`tickethub:${name}`]);
+    }
+  } finally {
+    client.release();
+  }
+}
+
 export { pool as postgresPool };

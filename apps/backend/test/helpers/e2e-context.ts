@@ -37,14 +37,30 @@ export async function startE2eContext(databaseUrl: string) {
 
   const originalFetch = globalThis.fetch;
   let providerCounter = 0;
+  /** What the fake gateway answers to GET /payments/{reference}; absent means 404. */
+  const gatewayPayments = new Map<string, { status: string; amount: number; currency: string }>();
+  const gatewayFailures = new Set<string>();
+  const sms: Array<{ to: string; template: string; payload: { message: string } }> = [];
+  let smsDown = false;
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (String(input).startsWith(`${process.env.GENIUSPAY_API_BASE_URL}/payments`)) {
+    const url = String(input);
+    const base = `${process.env.GENIUSPAY_API_BASE_URL}/payments`;
+    const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+    if (url.startsWith(base) && (init?.method ?? 'GET') === 'POST') {
       providerCounter += 1;
       const reference = `test-${Date.now()}-${providerCounter}-${randomInt(1_000_000)}`;
-      return new Response(JSON.stringify({ data: { reference, checkout_url: 'https://checkout.genius.ci/mock' } }), {
-        status: 201,
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return json({ data: { reference, checkout_url: 'https://checkout.genius.ci/mock' } }, 201);
+    }
+    if (url.startsWith(`${base}/`)) {
+      const reference = decodeURIComponent(url.slice(base.length + 1));
+      if (gatewayFailures.has(reference)) return json({ error: { message: 'boom' } }, 500);
+      const known = gatewayPayments.get(reference);
+      return known ? json({ data: { reference, ...known } }) : json({ error: { message: 'not found' } }, 404);
+    }
+    if (url === process.env.SMS_PROVIDER_URL) {
+      if (smsDown) return json({ error: 'down' }, 503);
+      sms.push(JSON.parse(String(init?.body)) as (typeof sms)[number]);
+      return json({ ok: true });
     }
     return originalFetch(input, init);
   }) as typeof fetch;
@@ -179,6 +195,10 @@ export async function startE2eContext(databaseUrl: string) {
 
   return {
     prisma: database.prisma,
+    gatewayPayments,
+    gatewayFailures,
+    sms,
+    setSmsDown: (down: boolean) => { smsDown = down; },
     api,
     registerTraveler,
     registerPartnerFor,

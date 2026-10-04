@@ -10,6 +10,8 @@ export function configureTestEnv(databaseUrl = 'postgresql://tickethub:tickethub
   process.env.WEB_ORIGIN = 'http://localhost:3000';
   process.env.APP_URL = 'http://localhost:3000';
   process.env.REDIS_URL = '';
+  process.env.SMS_PROVIDER_URL = 'https://sms.test/send';
+  process.env.SMS_PROVIDER_API_KEY = 'test-sms-key';
   process.env.DATA_ENCRYPTION_KEY = '00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff';
   // Tests hammer the API far beyond human rates; dedicated rate-limit tests lower these explicitly.
   process.env.AUTH_RATE_LIMIT_MAX ??= '1000';

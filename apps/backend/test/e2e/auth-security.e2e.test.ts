@@ -165,9 +165,8 @@ describe('authentication hardening, MFA, audit trail', { skip: !testDatabaseUrl,
       assert.equal(locked.status, 429);
       assert.equal((await json(locked)).error.code, 'ACCOUNT_LOCKED');
 
-      const user = await ctx.prisma.user.findUniqueOrThrow({ where: { phone: `+225${traveler.phone.slice(1)}` } }).catch(() => null);
-      const events = await ctx.prisma.securityEvent.count({ where: { eventType: 'auth.account_locked', userId: user?.id } });
-      if (user) assert.equal(events, 1);
+      const user = await ctx.prisma.user.findUniqueOrThrow({ where: { phone: `+225${traveler.phone}` } });
+      assert.equal(await ctx.prisma.securityEvent.count({ where: { eventType: 'auth.account_locked', userId: user.id } }), 1);
     });
 
     it('lets the user back in once the lock expires and resets the counter', async () => {
@@ -231,7 +230,7 @@ describe('authentication hardening, MFA, audit trail', { skip: !testDatabaseUrl,
     it('records logins, failures and rejected scans with the acting user', async () => {
       const partner = await ctx.registerPartnerFor(await ctx.providerIdByCode('UTB'));
       await enrollMfa(partner);
-      const user = await ctx.prisma.user.findFirstOrThrow({ orderBy: { createdAt: 'desc' }, where: { role: 'partner' } });
+      const user = await ctx.prisma.user.findUniqueOrThrow({ where: { phone: `+225${partner.phone}` } });
       await ctx.api('/api/partner/scans', { method: 'POST', body: JSON.stringify({ ticketCode: 'TKH-AAAAAA-CCCCCC' }) }, partner);
 
       const actions = (await ctx.prisma.auditLog.findMany({ where: { userId: user.id } })).map((row) => row.action);

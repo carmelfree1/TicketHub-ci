@@ -37,6 +37,30 @@ export const settlementRepository = {
     return results;
   },
 
+  /** pending -> approved. The conditional update makes a double approval or an approval of a paid settlement a no-op. */
+  async approve(id: string, now = new Date()): Promise<boolean> {
+    const result = await db.settlement.updateMany({ where: { id, status: 'pending' }, data: { status: 'approved', approvedAt: now } });
+    return result.count === 1;
+  },
+
+  /** approved -> paid, recording the bank or mobile money transfer reference the operator used. */
+  async markPaid(id: string, payoutReference: string, now = new Date()): Promise<boolean> {
+    const result = await db.settlement.updateMany({ where: { id, status: 'approved' }, data: { status: 'paid', paidAt: now, payoutReference } });
+    return result.count === 1;
+  },
+
+  /** pending or approved -> cancelled; a paid settlement can never be cancelled. */
+  async cancel(id: string): Promise<boolean> {
+    const result = await db.settlement.updateMany({ where: { id, status: { in: ['pending', 'approved'] } }, data: { status: 'cancelled' } });
+    return result.count === 1;
+  },
+
+  findById(id: string) { return db.settlement.findUnique({ where: { id } }); },
+
+  list(status?: string) {
+    return db.settlement.findMany({ where: status ? { status } : {}, orderBy: [{ periodStart: 'desc' }, { providerCode: 'asc' }], take: 200 });
+  },
+
   /** Only the companies the caller belongs to, never the whole platform. */
   listForProviders(providerCodes: string[]) {
     return db.settlement.findMany({

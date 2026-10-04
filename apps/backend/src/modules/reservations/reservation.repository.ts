@@ -39,8 +39,9 @@ export const reservationRepository = {
   async createTransport(userId: string, input: TransportReservationInput) {
     return transaction(async (tx: DbTransaction) => {
       const [trip] = await tx.$queryRaw<Array<{ id: string; priceXof: number; seatCapacity: number; departAt: Date }>>`
-        SELECT id, price_xof AS "priceXof", seat_capacity AS "seatCapacity", depart_at AS "departAt"
-        FROM bus_trips WHERE id = ${input.tripId} FOR UPDATE`;
+        SELECT t.id, t.price_xof AS "priceXof", t.seat_capacity AS "seatCapacity", t.depart_at AS "departAt"
+        FROM bus_trips t JOIN providers p ON p.id = t.provider_id AND p.status = 'active'
+        WHERE t.id = ${input.tripId} FOR UPDATE OF t`;
       if (!trip || new Date(trip.departAt).getTime() <= Date.now()) {
         throw new BusinessError('Ce départ n’est plus disponible.', 'TRIP_UNAVAILABLE', 404);
       }
@@ -76,6 +77,7 @@ export const reservationRepository = {
         SELECT c.id, c.event_id AS "eventId", c.price_xof AS "priceXof", c.capacity,
                e.starts_at AS "startsAt", e.status AS "eventStatus"
         FROM event_ticket_categories c JOIN events e ON e.id = c.event_id
+        JOIN providers p ON p.id = e.provider_id AND p.status = 'active'
         WHERE c.id = ${input.categoryId} AND c.event_id = ${input.eventId}
         FOR UPDATE OF c`;
       if (!category || category.eventStatus !== 'published' || new Date(category.startsAt).getTime() <= Date.now()) {

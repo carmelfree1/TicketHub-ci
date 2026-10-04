@@ -1,4 +1,5 @@
 import { AppError } from '../../core/errors/AppError.js';
+import { logger } from '../../core/logger/logger.js';
 import { notificationQueue } from '../../queues/notification.queue.js';
 import { emailService } from '../../integrations/email/email.service.js';
 import { smsService } from '../../integrations/sms/sms.service.js';
@@ -18,6 +19,26 @@ export const notificationService = {
       }
     }
     return notification;
+  },
+
+  /**
+   * Hands notifications that were committed with a business change to the queue, or sends them directly when there is
+   * no queue. Never throws and never blocks the caller: a failure leaves the row for the scheduled retry job.
+   */
+  dispatch(ids: string[]): void {
+    for (const id of ids) {
+      void (async () => {
+        try {
+          if (notificationQueue) {
+            await notificationQueue.add('deliver', { notificationId: id }, { jobId: id, attempts: 5, backoff: { type: 'exponential', delay: 1_000 } });
+          } else {
+            await notificationService.deliver(id);
+          }
+        } catch (error) {
+          logger.warn({ err: error, notificationId: id }, 'Notification non envoyée immédiatement; nouvelle tentative planifiée');
+        }
+      })();
+    }
   },
 
   async deliver(notificationId: string) {

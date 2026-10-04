@@ -41,7 +41,7 @@ const eventInclude = (now: Date) => ({
 export const eventRepository = {
   async list(query: EventQuery = {}, now = new Date()) {
     const events = await db.event.findMany({
-      where: { status: 'published', startsAt: { gt: now }, ...(query.type ? { eventType: query.type } : {}) },
+      where: { status: 'published', provider: { status: 'active' }, startsAt: { gt: now }, ...(query.type ? { eventType: query.type } : {}) },
       include: eventInclude(now),
       orderBy: { startsAt: 'asc' },
       take: 100,
@@ -51,7 +51,7 @@ export const eventRepository = {
 
   async findById(id: string, now = new Date()) {
     const event = await db.event.findFirst({
-      where: { id, status: 'published', startsAt: { gt: now } },
+      where: { id, status: 'published', provider: { status: 'active' }, startsAt: { gt: now } },
       include: eventInclude(now),
     });
     return event ? toEvent(event) : null;

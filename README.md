@@ -70,7 +70,7 @@ Le baseline suppose les tables legacy (`users`, `sessions`, `bus_trips`, `events
 | `PGSSL`, `PG_POOL_SIZE` | TLS et taille du pool PostgreSQL. |
 | `PLATFORM_COMMISSION_BPS` | Commission des règlements en points de base (0 par défaut). |
 | `EMAIL_PROVIDER_URL`, `EMAIL_PROVIDER_API_KEY` | Adapter HTTP optionnel pour les emails sortants. |
-| `SMS_PROVIDER_URL`, `SMS_PROVIDER_API_KEY` | Adapter HTTP optionnel pour les SMS sortants. |
+| `SMS_PROVIDER_URL`, `SMS_PROVIDER_API_KEY` | Adapter HTTP pour les SMS sortants (confirmation de paiement, échec, revue, remboursement). Sans lui, les messages restent en file et sont réessayés. |
 
 En production, l’API exige HTTPS pour `APP_URL`/`WEB_ORIGIN`, Redis et les credentials GeniusPay. Les secrets doivent venir du gestionnaire de secrets de l’environnement de déploiement.
 
