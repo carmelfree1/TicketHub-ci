@@ -1,6 +1,6 @@
 import type { Booking } from '../../generated/prisma/client.js';
 import { randomUUID } from 'node:crypto';
-import { prisma, type DbTransaction } from '../../config/database.js';
+import { prisma, type DbTransaction, transaction } from '../../config/database.js';
 import { BusinessError } from '../../core/errors/BusinessError.js';
 import type { EventReservationInput, TransportReservationInput } from './reservation.types.js';
 
@@ -37,7 +37,7 @@ function validateSeats(seats: number[], capacity: number): number[] {
 
 export const reservationRepository = {
   async createTransport(userId: string, input: TransportReservationInput) {
-    return db.$transaction(async (tx: DbTransaction) => {
+    return transaction(async (tx: DbTransaction) => {
       const [trip] = await tx.$queryRaw<Array<{ id: string; priceXof: number; seatCapacity: number; departAt: Date }>>`
         SELECT id, price_xof AS "priceXof", seat_capacity AS "seatCapacity", depart_at AS "departAt"
         FROM bus_trips WHERE id = ${input.tripId} FOR UPDATE`;
@@ -71,7 +71,7 @@ export const reservationRepository = {
   },
 
   async createEvent(userId: string, input: EventReservationInput) {
-    return db.$transaction(async (tx: DbTransaction) => {
+    return transaction(async (tx: DbTransaction) => {
       const [category] = await tx.$queryRaw<Array<{ id: string; eventId: string; priceXof: number; capacity: number; startsAt: Date; eventStatus: string }>>`
         SELECT c.id, c.event_id AS "eventId", c.price_xof AS "priceXof", c.capacity,
                e.starts_at AS "startsAt", e.status AS "eventStatus"

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { prisma, type DbTransaction } from '../../config/database.js';
+import { prisma, type DbTransaction, transaction } from '../../config/database.js';
 import { AppError } from '../../core/errors/AppError.js';
 import { BusinessError } from '../../core/errors/BusinessError.js';
 import { ticketRepository } from './ticket.repository.js';
@@ -65,7 +65,7 @@ export const ticketService = {
     }
     if (!ticketId || !bookingId) throw new AppError('Billet introuvable.', 404, 'TICKET_NOT_FOUND');
 
-    return db.$transaction(async (tx: DbTransaction) => {
+    return transaction(async (tx: DbTransaction) => {
       const ticket = await ticketRepository.findForScan(tx, ticketId!);
       if (!ticket || ticket.bookingId !== bookingId) throw new AppError('Billet introuvable.', 404, 'TICKET_NOT_FOUND');
       const booking = ticket.booking;

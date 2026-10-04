@@ -1,4 +1,4 @@
-import { prisma, type DbTransaction } from '../../config/database.js';
+import { prisma, type DbTransaction, transaction } from '../../config/database.js';
 import { logger } from '../../core/logger/logger.js';
 
 const db = prisma;
@@ -11,7 +11,7 @@ export async function reconcilePaymentsJob(now = new Date()): Promise<number> {
     take: 100,
   });
   for (const item of pending) {
-    await db.$transaction(async (tx: DbTransaction) => {
+    await transaction(async (tx: DbTransaction) => {
       const [locked] = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM bookings WHERE id = ${item.bookingId} FOR UPDATE`;
       if (!locked) return;
       const payment = await tx.payment.findUnique({ where: { id: item.id }, include: { booking: true } });

@@ -15,14 +15,14 @@ test('PostgreSQL schema contains the TicketHub persistence modules', { skip: !te
     await connectDatabase();
     const relations = await prisma.$queryRaw<Array<Record<string, string | null>>>`
       SELECT
-        to_regclass('public.users') AS users,
-        to_regclass('public.bookings') AS bookings,
-        to_regclass('public.payments') AS payments,
-        to_regclass('public.orders') AS orders,
-        to_regclass('public.tickets') AS tickets,
-        to_regclass('public.refunds') AS refunds,
-        to_regclass('public.settlements') AS settlements,
-        to_regclass('public.notifications') AS notifications`;
+        to_regclass('public.users')::text AS users,
+        to_regclass('public.bookings')::text AS bookings,
+        to_regclass('public.payments')::text AS payments,
+        to_regclass('public.orders')::text AS orders,
+        to_regclass('public.tickets')::text AS tickets,
+        to_regclass('public.refunds')::text AS refunds,
+        to_regclass('public.settlements')::text AS settlements,
+        to_regclass('public.notifications')::text AS notifications`;
     const schema = relations[0];
     for (const table of ['users', 'bookings', 'payments', 'orders', 'tickets', 'refunds', 'settlements', 'notifications']) {
       assert.ok(schema[table], `Expected public.${table}; run npm run db:migrate against TEST_DATABASE_URL first.`);

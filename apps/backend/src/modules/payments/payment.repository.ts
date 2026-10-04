@@ -1,6 +1,6 @@
 import type { GeniusPayAdapterInput } from '../../integrations/geniuspay/geniuspay.adapter.js';
 import { randomUUID } from 'node:crypto';
-import { prisma, type DbTransaction } from '../../config/database.js';
+import { prisma, type DbTransaction, transaction } from '../../config/database.js';
 import { AppError } from '../../core/errors/AppError.js';
 import type { GeniusPayPayment, GeniusPayWebhookPayload } from '../../integrations/geniuspay/geniuspay.types.js';
 import { issueTicketsForBooking } from '../tickets/ticket.service.js';
@@ -12,7 +12,7 @@ const PAYMENT_START_LEASE_MS = 30_000;
 
 export const paymentRepository = {
   async start(userId: string, bookingId: string, paymentMethod: PaymentMethodId, createProviderPayment: (input: Omit<GeniusPayAdapterInput, 'appUrl'>) => Promise<GeniusPayPayment>) {
-    const prepared = await db.$transaction(async (tx: DbTransaction) => {
+    const prepared = await transaction(async (tx: DbTransaction) => {
       const [locked] = await tx.$queryRaw<Array<{ id: string }>>`SELECT id FROM bookings WHERE id = ${bookingId} FOR UPDATE`;
       if (!locked) throw new AppError('Réservation introuvable.', 404, 'BOOKING_NOT_FOUND');
       const booking = await tx.booking.findUnique({
@@ -102,7 +102,7 @@ export const paymentRepository = {
   },
 
   async processWebhook(deliveryId: string, eventType: string, payload: GeniusPayWebhookPayload) {
-    return db.$transaction(async (tx: DbTransaction) => {
+    return transaction(async (tx: DbTransaction) => {
       const delivery = await tx.webhookDelivery.createMany({
         data: [{ deliveryId, eventType }],
         skipDuplicates: true,

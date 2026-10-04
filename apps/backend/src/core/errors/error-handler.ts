@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler } from 'express';
 import { Prisma } from '../../generated/prisma/client.js';
+import { isSerializationFailure } from '../../config/database.js';
 import { env } from '../../config/env.js';
 import { logger } from '../logger/logger.js';
 import { AppError } from './AppError.js';
@@ -9,6 +10,9 @@ export const errorHandler: ErrorRequestHandler = (error, request, response, _nex
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === 'P2002') normalized = new AppError('Cette valeur existe déjà.', 409, 'UNIQUE_CONSTRAINT');
     else if (error.code === 'P2025') normalized = new AppError('Ressource introuvable.', 404, 'NOT_FOUND');
+  }
+  if (!normalized && isSerializationFailure(error)) {
+    normalized = new AppError('Conflit de concurrence, veuillez réessayer.', 409, 'CONCURRENT_UPDATE');
   }
   if (!normalized && error instanceof SyntaxError && 'body' in error) normalized = new AppError('Corps JSON invalide.', 400, 'INVALID_JSON');
   if (!normalized && typeof error === 'object' && error !== null && 'type' in error && error.type === 'entity.too.large') {

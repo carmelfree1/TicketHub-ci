@@ -1,6 +1,6 @@
 import { Pool } from 'pg';
 import { PrismaPg } from '@prisma/adapter-pg';
-import { type Prisma, PrismaClient } from '../generated/prisma/client.js';
+import { Prisma, PrismaClient } from '../generated/prisma/client.js';
 import { env } from './env.js';
 import { logger } from '../core/logger/logger.js';
 
@@ -21,6 +21,35 @@ export const prisma = new PrismaClient({
 });
 
 export type DbTransaction = Prisma.TransactionClient;
+
+const MAX_SERIALIZATION_RETRIES = 4;
+
+export function isSerializationFailure(error: unknown): boolean {
+  if (error instanceof Prisma.PrismaClientKnownRequestError) {
+    if (error.code === 'P2034') return true;
+    if (error.code === 'P2010' && (error.meta as { code?: string } | undefined)?.code === '40001') return true;
+  }
+  return error instanceof Error && error.message.includes('could not serialize access');
+}
+
+/**
+ * Runs a transaction and transparently retries it when PostgreSQL aborts it with a serialization
+ * failure (SQLSTATE 40001), which is the expected outcome of losing a race at SERIALIZABLE isolation.
+ * Only use it with callbacks whose effects are entirely inside the transaction.
+ */
+export async function transaction<T>(
+  run: (tx: DbTransaction) => Promise<T>,
+  options?: { isolationLevel?: Prisma.TransactionIsolationLevel; maxWait?: number; timeout?: number },
+): Promise<T> {
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      return await prisma.$transaction(run, options);
+    } catch (error) {
+      if (!isSerializationFailure(error) || attempt >= MAX_SERIALIZATION_RETRIES) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 20 * 2 ** attempt + Math.floor(Math.random() * 30)));
+    }
+  }
+}
 
 export async function connectDatabase(): Promise<void> {
   await prisma.$connect();

@@ -8,6 +8,23 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: tickethub
+          POSTGRES_PASSWORD: tickethub
+          POSTGRES_DB: tickethub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U tickethub -d tickethub_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://tickethub:tickethub@localhost:5432/tickethub_test
+      TEST_DATABASE_URL: postgresql://tickethub:tickethub@localhost:5432/tickethub_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,9 +33,11 @@ jobs:
       - run: corepack enable
       - run: corepack pnpm install --frozen-lockfile
       - run: corepack pnpm db:generate
-        env:
-          DATABASE_URL: postgresql://tickethub:tickethub@localhost:5432/tickethub
       - run: corepack pnpm lint
       - run: corepack pnpm lint:eslint
       - run: corepack pnpm build
       - run: corepack pnpm test
+      - run: corepack pnpm db:migrate
+      - run: corepack pnpm db:seed
+      - run: corepack pnpm test:integration
+      - run: corepack pnpm test:e2e
