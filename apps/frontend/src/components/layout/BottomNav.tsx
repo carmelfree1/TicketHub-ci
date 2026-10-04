@@ -22,7 +22,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   if (userRole === 'partner') {
     return (
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f8f9ff]/95 backdrop-blur-xl border-t border-[#dce9ff] shadow-[0_-2px_12px_rgba(0,0,0,0.06)]">
-        <div className="max-w-md mx-auto flex items-center justify-around h-16 px-2">
+        <div className="mx-auto flex h-16 w-full max-w-[1440px] items-center justify-around px-2 sm:px-6 lg:px-8">
           {/* 1. Ventes */}
           <button
             onClick={() => onNavigate('partner-dashboard')}
@@ -107,7 +107,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
   // Traveler Bottom Nav
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-[#f8f9ff]/95 backdrop-blur-xl border-t border-[#dce9ff] shadow-[0_-2px_12px_rgba(11,28,48,0.05)]">
-      <div className="max-w-md mx-auto flex justify-around items-center h-16 px-1">
+      <div className="mx-auto flex h-16 w-full max-w-[1440px] justify-around items-center px-1 sm:px-6 lg:px-8">
         {/* Explorer */}
         <button
           onClick={() => onNavigate('explorer')}

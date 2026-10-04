@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { formatXof } from '@tickethub/shared';
 import { DigitalTicket } from '@/types';
-import { ASSETS } from '@/features/catalog/data/mockData';
+import { ASSETS } from '@/lib/assets';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface DigitalPassScreenProps {

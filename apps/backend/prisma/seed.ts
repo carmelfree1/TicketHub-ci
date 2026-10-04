@@ -1,7 +1,6 @@
 import '../src/load-env.js';
 import { prisma, postgresPool } from '../src/config/database.js';
-import { MOCK_TRIPS } from '../../frontend/src/features/catalog/data/mockData.js';
-import { MOCK_EVENTS } from '../../frontend/src/features/catalog/data/eventData.js';
+import { DEMO_EVENTS, DEMO_TRIPS } from './demo-data.js';
 
 const db = prisma as any;
 
@@ -13,7 +12,7 @@ function dateInDays(days: number): Date {
 }
 
 async function seed(): Promise<void> {
-  for (const provider of new Map(MOCK_TRIPS.map((trip) => [trip.carrierCode, { code: trip.carrierCode, name: trip.carrier }])).values()) {
+  for (const provider of new Map(DEMO_TRIPS.map((trip) => [trip.carrierCode, { code: trip.carrierCode, name: trip.carrier }])).values()) {
     await db.provider.upsert({
       where: { code: provider.code },
       create: { id: provider.code, code: provider.code, name: provider.name, status: 'active' },
@@ -24,7 +23,7 @@ async function seed(): Promise<void> {
   for (let offset = 1; offset <= 14; offset += 1) {
     const day = dateInDays(offset);
     const dateId = day.toISOString().slice(0, 10).replaceAll('-', '');
-    for (const trip of MOCK_TRIPS) {
+    for (const trip of DEMO_TRIPS) {
       const [hour, minute] = trip.departTime.split(':').map(Number);
       const departAt = new Date(day);
       departAt.setUTCHours(hour, minute, 0, 0);
@@ -43,7 +42,7 @@ async function seed(): Promise<void> {
     }
   }
 
-  for (const event of MOCK_EVENTS) {
+  for (const event of DEMO_EVENTS) {
     await db.event.upsert({
       where: { id: event.id },
       create: {

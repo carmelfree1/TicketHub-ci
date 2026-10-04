@@ -1,13 +1,38 @@
 import { DigitalTicket } from '@/types';
-import { INITIAL_DIGITAL_TICKET } from '@/features/catalog/data/mockData';
 import { TicketRecord } from './api';
+
+export const EMPTY_DIGITAL_TICKET: DigitalTicket = {
+  ticketCode: '',
+  commandRef: '',
+  carrier: '',
+  category: '',
+  departCity: '',
+  departStation: '',
+  arrivalCity: '',
+  arrivalStation: '',
+  departureDate: '',
+  departureTime: '',
+  boardingTime: '',
+  duration: '',
+  seats: [],
+  passengerName: '',
+  passengerPhone: '',
+  cniVerified: false,
+  price: 0,
+  paymentMethod: '',
+  status: 'active',
+  quai: '',
+  qrPayload: '',
+  issuedAt: '',
+  luggage: '',
+};
 
 export function toDigitalTicket(ticket: TicketRecord): DigitalTicket {
   const isEvent = ticket.productType === 'event';
   const start = ticket.departureDate ? new Date(ticket.departureDate) : new Date();
   const safeDate = Number.isNaN(start.getTime()) ? new Date() : start;
   return {
-    ...INITIAL_DIGITAL_TICKET,
+    ...EMPTY_DIGITAL_TICKET,
     ticketCode: ticket.ticketCode,
     commandRef: ticket.commandRef,
     carrier: isEvent ? 'TicketHub Événements' : ticket.carrier || 'Transporteur',

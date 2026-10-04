@@ -33,7 +33,7 @@ export const PartnerFleetScreen: React.FC<PartnerFleetScreenProps> = ({
   };
 
   return (
-    <div className="flex flex-col w-full pb-24 max-w-md mx-auto px-4 pt-2">
+    <div className="mx-auto flex w-full max-w-7xl flex-col pb-24 px-4 sm:px-6 lg:px-8 pt-3">
       {/* Action Header Bar */}
       <div className="flex items-center justify-between gap-2 mb-3">
         <div>

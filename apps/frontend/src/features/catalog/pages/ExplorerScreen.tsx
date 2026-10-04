@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { formatXof } from '@tickethub/shared';
 import { TripDeparture, TicketedEvent } from '@/types';
-import { MOCK_TRIPS, ASSETS } from '@/features/catalog/data/mockData';
-import { MOCK_EVENTS } from '@/features/catalog/data/eventData';
 import { catalogApi } from '@/features/catalog/api';
 
 interface ExplorerScreenProps {
@@ -18,9 +16,9 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
   const [departCity, setDepartCity] = useState('Abidjan');
   const [destCity, setDestCity] = useState('Yamoussoukro');
   const [passengers] = useState('1 Adulte');
-  const [trips, setTrips] = useState<TripDeparture[]>(MOCK_TRIPS);
-  const [events, setEvents] = useState<TicketedEvent[]>(MOCK_EVENTS);
-  const [visibleTrips, setVisibleTrips] = useState<TripDeparture[]>(MOCK_TRIPS.slice(0, 3));
+  const [trips, setTrips] = useState<TripDeparture[]>([]);
+  const [events, setEvents] = useState<TicketedEvent[]>([]);
+  const [visibleTrips, setVisibleTrips] = useState<TripDeparture[]>([]);
   const [catalogMessage, setCatalogMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [departureDate, setDepartureDate] = useState(() => {
@@ -87,15 +85,15 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
   const filteredEvents = events.filter((event) => !eventTypeFilter || event.eventType === eventTypeFilter);
 
   return (
-    <div className="flex flex-col w-full pb-24 max-w-md mx-auto">
+    <div className="mx-auto flex w-full max-w-7xl flex-col pb-24">
       {/* 1. Dynamic Hero & Value Proposition */}
-      <section className="px-4 pt-2 pb-3">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#ff6b00] via-[#a04100] to-[#572000] text-white p-4 shadow-md">
+      <section className="px-4 sm:px-6 lg:px-8 pt-3 sm:pt-5 pb-3">
+        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#ff6b00] via-[#a04100] to-[#572000] text-white p-4 sm:p-6 lg:p-8 shadow-md">
           {/* Ambient decorative lighting */}
           <div className="absolute -right-10 -bottom-10 w-36 h-36 rounded-full bg-white/10 blur-xl pointer-events-none"></div>
           <div className="absolute -left-6 -top-6 w-24 h-24 rounded-full bg-[#a8f3c1]/20 blur-lg pointer-events-none"></div>
 
-          <div className="relative z-10 flex flex-col gap-2">
+          <div className="relative z-10 flex max-w-3xl flex-col gap-2">
             <div className="inline-flex items-center gap-1.5 self-start px-2.5 py-0.5 rounded-full bg-white/20 backdrop-blur-md">
               <span className="w-1.5 h-1.5 rounded-full bg-[#a8f3c1] animate-ping"></span>
               <span className="font-headline text-[10px] uppercase tracking-wider text-white font-bold">
@@ -103,17 +101,17 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
               </span>
             </div>
 
-            <h1 className="font-headline text-[24px] font-bold tracking-tight text-white leading-tight">
+            <h1 className="font-headline text-[24px] sm:text-[34px] lg:text-[42px] font-bold tracking-tight text-white leading-tight">
               Tous vos billets en Côte d'Ivoire au même endroit.
             </h1>
 
-            <p className="font-body text-[13px] text-[#ffdbcc] opacity-95 leading-snug">
+            <p className="font-body text-[13px] sm:text-[15px] text-[#ffdbcc] opacity-95 leading-snug">
               Un seul compte sécurisé, zéro tracas. Comparez les départs, réservez vos places de bus et vos soirées en toute confiance.
             </p>
           </div>
 
           {/* Quick Trust Counters */}
-          <div className="relative z-10 grid grid-cols-3 gap-2 pt-3 mt-3 border-t border-white/15 text-center">
+          <div className="relative z-10 grid grid-cols-3 gap-2 sm:max-w-xl pt-3 mt-4 border-t border-white/15 text-center">
             <div>
               <span className="block font-headline text-[20px] font-bold text-white leading-none">
                 28+
@@ -143,7 +141,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
       </section>
 
       {/* 2. Category Filter Pill Selector */}
-      <section className="px-4 pb-3">
+      <section className="px-4 sm:px-6 lg:px-8 pb-3">
         <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
           <button
             onClick={() => setSelectedCategory('transport')}
@@ -198,10 +196,10 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
       {selectedCategory === 'transport' && (
         <>
       {/* 3. Search Engine Card */}
-      <section className="px-4 pb-3">
-        <div className="rounded-2xl bg-white p-4 shadow-sm border border-[#e2bfb0]/30 flex flex-col gap-3">
+      <section className="px-4 sm:px-6 lg:px-8 pb-3">
+        <div className="rounded-2xl bg-white p-4 sm:p-5 shadow-sm border border-[#e2bfb0]/30 flex flex-col gap-3 lg:grid lg:grid-cols-[1.4fr_0.8fr_auto] lg:items-end">
           {/* Departure & Destination Cluster with Swap Button */}
-          <div className="relative flex flex-col gap-2">
+          <div className="relative flex flex-col gap-2 lg:grid lg:grid-cols-2 lg:gap-3">
             {/* Departure Field */}
             <div className="relative flex items-center bg-[#eff4ff] rounded-xl p-2.5 transition-colors focus-within:bg-[#dce9ff]/60 border border-[#dce9ff]">
               <span className="material-symbols-outlined text-[#ff6b00] text-[20px] mr-2 flex-shrink-0">
@@ -224,7 +222,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
             </div>
 
             {/* Quick Switcher Button */}
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10">
+            <div className="absolute right-4 top-1/2 -translate-y-1/2 z-10 lg:left-1/2 lg:right-auto lg:-translate-x-1/2">
               <button
                 type="button"
                 onClick={handleSwapCities}
@@ -260,7 +258,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
           </div>
 
           {/* Quick Destination Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
+          <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5 lg:col-span-3">
             <span className="font-headline text-[11px] text-[#5a4136] font-semibold flex-shrink-0">
               Suggestions :
             </span>
@@ -281,7 +279,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
           </div>
 
           {/* Date & Passengers Dual Selectors */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div className="bg-[#eff4ff] rounded-xl p-2.5 flex items-center gap-2 border border-[#dce9ff]">
               <span className="material-symbols-outlined text-[#ff6b00] text-[20px] flex-shrink-0">
                 calendar_month
@@ -330,7 +328,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
       </section>
 
       {/* 4. Aggregator Reassurance Banner */}
-      <section className="px-4 pb-3">
+      <section className="px-4 sm:px-6 lg:px-8 pb-3">
         <div className="flex items-center gap-2 p-3 rounded-xl bg-[#a5f0be]/30 border border-[#a5f0be] text-[#00522e]">
           <span className="material-symbols-outlined text-[20px] text-[#216b43] flex-shrink-0">
             verified_user
@@ -342,8 +340,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
       </section>
 
       {/* 5. Live Comparison Results Section */}
-      <section className="px-4 pb-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+      <section className="px-4 sm:px-6 lg:px-8 pb-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="flex items-center justify-between md:col-span-2 xl:col-span-3">
           <div className="flex items-center gap-1.5">
             <h2 className="font-headline text-[18px] font-bold text-[#0b1c30]">
               Départs vérifiés
@@ -359,7 +357,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
           </button>
         </div>
 
-        {catalogMessage && <p role="status" className="p-2.5 rounded-xl bg-[#eff4ff] text-[#5a4136] font-body text-[11px]">{catalogMessage}</p>}
+        {catalogMessage && <p role="status" className="p-2.5 rounded-xl bg-[#eff4ff] text-[#5a4136] font-body text-[11px] md:col-span-2 xl:col-span-3">{catalogMessage}</p>}
         {visibleTrips.length === 0 && <p className="p-4 rounded-2xl bg-white border border-[#dce9ff] text-center font-body text-[12px] text-[#5a4136]">Aucun départ trouvé.</p>}
         {visibleTrips.map((trip, idx) => {
           const isFirst = idx === 0;
@@ -508,8 +506,8 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
       )}
 
       {/* 6. Real event catalogue — event purchases follow their own ticket categories */}
-      <section className="px-4 pb-5 flex flex-col gap-3">
-        <div className="flex items-center justify-between">
+      <section className="px-4 sm:px-6 lg:px-8 pb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+        <div className="flex items-center justify-between md:col-span-2 xl:col-span-3">
           <div>
             <h2 className="font-headline text-[18px] font-bold text-[#0b1c30]">
               {selectedCategory === 'transport' ? 'À la une ce week-end' : 'Billets événementiels'}
@@ -573,7 +571,7 @@ export const ExplorerScreen: React.FC<ExplorerScreenProps> = ({
       </section>
 
       {/* 7. Instant GeniusPay Secured Footing */}
-      <section className="px-4 pb-6">
+      <section className="px-4 sm:px-6 lg:px-8 pb-6">
         <div className="rounded-2xl bg-[#eff4ff] p-4 flex flex-col items-center text-center gap-2 border border-[#dce9ff]">
           <div className="flex items-center gap-1.5 text-[#216b43]">
             <span className="material-symbols-outlined text-[20px]">lock</span>

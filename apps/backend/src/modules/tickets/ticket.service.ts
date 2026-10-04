@@ -12,10 +12,20 @@ export async function issueTicketsForBooking(tx: any, bookingId: string): Promis
   const booking = await tx.booking.findUnique({ where: { id: bookingId }, select: { id: true, quantity: true } });
   if (!booking) throw new AppError('Réservation introuvable.', 404, 'BOOKING_NOT_FOUND');
   for (let ordinal = 0; ordinal < booking.quantity; ordinal += 1) {
-    await tx.ticket.createMany({
-      data: [{ id: randomUUID(), bookingId, ordinal, code: createTicketCode() }],
-      skipDuplicates: true,
-    });
+    const existing = await tx.ticket.findUnique({ where: { bookingId_ordinal: { bookingId, ordinal } }, select: { id: true } });
+    if (existing) continue;
+
+    let created = false;
+    for (let attempt = 0; attempt < 10 && !created; attempt += 1) {
+      const result = await tx.ticket.createMany({
+        data: [{ id: randomUUID(), bookingId, ordinal, code: createTicketCode() }],
+        skipDuplicates: true,
+      });
+      created = result.count === 1;
+    }
+    if (!created) {
+      throw new AppError('Impossible de generer un code billet unique.', 500, 'TICKET_CODE_GENERATION_FAILED');
+    }
   }
 }
 

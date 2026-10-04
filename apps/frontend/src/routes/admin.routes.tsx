@@ -1,2 +1,1 @@
-// No admin screens are exposed by the current client.
-export const adminRoutes = [] as const;
+export const adminRoutes = ['partner-dashboard', 'partner-fleet', 'partner-scanner', 'partner-manifest'] as const;

@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { AppScreen, AuthUser, DigitalTicket, TicketCategory, TicketedEvent, TripDeparture } from '@/types';
-import { MOCK_TRIPS, INITIAL_DIGITAL_TICKET } from '@/features/catalog/data/mockData';
 import { ApiError } from '@/services/api';
 import { authApi } from '@/features/auth/api';
+import { catalogApi } from '@/features/catalog/api';
 import { bookingApi } from '@/features/booking/api';
 import { paymentsApi } from '@/features/payments/api';
 import { ticketsApi } from '@/features/tickets/api';
-import { toDigitalTicket } from '@/services/ticketMapper';
+import { EMPTY_DIGITAL_TICKET, toDigitalTicket } from '@/services/ticketMapper';
 import { Header } from '@/components/layout/Header';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { ProfileModal } from '@/components/forms/ProfileModal';
@@ -32,7 +32,7 @@ const partnerScreens: AppScreen[] = [
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<AppScreen>('explorer');
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
-  const [selectedTrip, setSelectedTrip] = useState<TripDeparture>(MOCK_TRIPS[0]);
+  const [selectedTrip, setSelectedTrip] = useState<TripDeparture | null>(null);
   const [selectedSeats, setSelectedSeats] = useState<number[]>([14]);
   const [selectedEvent, setSelectedEvent] = useState<TicketedEvent | null>(null);
   const [selectedEventCategory, setSelectedEventCategory] = useState<TicketCategory | null>(null);
@@ -44,7 +44,7 @@ export default function App() {
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const [activeTicketCount, setActiveTicketCount] = useState(0);
   const [ticketRefreshKey, setTicketRefreshKey] = useState(0);
-  const [digitalTicket, setDigitalTicket] = useState<DigitalTicket>(INITIAL_DIGITAL_TICKET);
+  const [digitalTicket, setDigitalTicket] = useState<DigitalTicket>(EMPTY_DIGITAL_TICKET);
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
   const [paymentReturnState, setPaymentReturnState] = useState<PaymentReturnState>('checking');
   const [paymentReturnMessage, setPaymentReturnMessage] = useState('Nous vérifions la confirmation reçue de la passerelle de paiement.');
@@ -62,7 +62,20 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (!authUser) {
+    let active = true;
+    catalogApi.trips()
+      .then((trips) => {
+        if (!active || !trips.length) return;
+        setSelectedTrip(trips[0]);
+      })
+      .catch(() => {
+        // Les données du catalogue viennent du backend si disponible.
+      });
+    return () => { active = false; };
+  }, []);
+
+  useEffect(() => {
+    if (!authUser || authUser.role !== 'traveler') {
       setActiveTicketCount(0);
       return;
     }
@@ -166,6 +179,10 @@ export default function App() {
       setIsProfileModalOpen(true);
       return;
     }
+    if (!selectedTrip) {
+      setFlowError('Aucun trajet disponible pour cette réservation. Rechargez le catalogue.');
+      return;
+    }
     setIsCreatingBooking(true);
     try {
       const booking = await bookingApi.createTransport(selectedTrip.id, seats);
@@ -237,6 +254,11 @@ export default function App() {
       setIsProfileModalOpen(true);
       return;
     }
+    if (screen === 'tickets-wallet' && authUser?.role === 'partner') {
+      setCurrentScreen('partner-dashboard');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
     if (screen === 'tickets-wallet') setTicketRefreshKey((value) => value + 1);
     setCurrentScreen(screen);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -272,8 +294,8 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9ff] text-[#0b1c30] flex flex-col items-center">
-      <div className="w-full max-w-md min-h-screen flex flex-col bg-[#f8f9ff] relative shadow-2xl">
+    <div className="min-h-screen bg-[#eef3ff] text-[#0b1c30]">
+      <div className="mx-auto w-full min-h-screen max-w-[1440px] flex flex-col bg-[#f8f9ff] relative lg:border-x lg:border-[#dce9ff]">
         <Header
           currentScreen={currentScreen}
           userRole={userRole}
@@ -287,7 +309,7 @@ export default function App() {
             <ExplorerScreen onSelectTrip={handleSelectTrip} onSelectEvent={handleSelectEvent} />
           )}
 
-          {currentScreen === 'seat-selection' && (
+          {currentScreen === 'seat-selection' && selectedTrip && (
             <SeatSelectionScreen
               trip={selectedTrip}
               onContinueToPayment={handleContinueToPayment}
@@ -307,7 +329,7 @@ export default function App() {
             />
           )}
 
-          {currentScreen === 'payment' && (
+          {currentScreen === 'payment' && selectedTrip && (
             <PaymentScreen
               trip={selectedTrip}
               selectedSeats={selectedSeats}

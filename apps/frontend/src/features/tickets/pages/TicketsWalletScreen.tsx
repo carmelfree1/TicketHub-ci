@@ -58,7 +58,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
   const activeCount = tickets.filter((ticket) => ticket.status === 'active').length;
 
   return (
-    <div className="flex flex-col w-full pb-24 max-w-md mx-auto px-4 pt-2">
+    <div className="mx-auto flex w-full max-w-6xl flex-col pb-24 px-4 sm:px-6 lg:px-8 pt-3 gap-3">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="font-headline text-[20px] font-bold text-[#0b1c30]">Mes billets</h2>
@@ -91,6 +91,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
       )}
 
       <div className="flex flex-col gap-3">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {tickets.map((record) => {
           const ticket = toDigitalTicket(record);
           const isEvent = record.productType === 'event';
@@ -141,6 +142,7 @@ export const TicketsWalletScreen: React.FC<TicketsWalletScreenProps> = ({ user, 
             </article>
           );
         })}
+        </div>
       </div>
 
       <div className="mt-4 p-4 rounded-2xl bg-[#eff4ff] border border-[#dce9ff] text-center flex flex-col items-center gap-2">

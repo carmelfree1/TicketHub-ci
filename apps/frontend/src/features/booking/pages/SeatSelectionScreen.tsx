@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { formatXof } from '@tickethub/shared';
 import { TripDeparture } from '@/types';
-import { ASSETS } from '@/features/catalog/data/mockData';
+import { ASSETS } from '@/lib/assets';
 import { catalogApi } from '@/features/catalog/api';
 
 interface SeatSelectionScreenProps {

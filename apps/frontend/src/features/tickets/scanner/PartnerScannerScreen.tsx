@@ -146,8 +146,8 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
   const isEvent = result?.productType === 'event';
 
   return (
-    <div className="flex flex-col w-full pb-24 max-w-md mx-auto">
-      <section className="px-4 pt-3 pb-4 bg-[#eff4ff] flex flex-col gap-3 border-b border-[#dce9ff]">
+    <div className="mx-auto flex w-full max-w-6xl flex-col pb-24">
+      <section className="px-4 sm:px-6 lg:px-8 pt-3 pb-4 bg-[#eff4ff] flex flex-col gap-3 border-b border-[#dce9ff]">
         <div className="flex items-center justify-between">
           <div>
             <p className="font-headline text-[10px] text-[#216b43] uppercase font-bold tracking-wider">Contrôle partenaire</p>
@@ -158,7 +158,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
         <p className="font-body text-[12px] text-[#5a4136]">Chaque scan est contrôlé côté serveur et le billet est marqué comme utilisé de façon atomique.</p>
       </section>
 
-      <section className="px-4 py-4 flex flex-col gap-3">
+      <section className="px-4 sm:px-6 lg:px-8 py-4 grid gap-4 lg:grid-cols-[1.2fr_0.8fr]">
         <div className="relative w-full aspect-[4/3] max-h-[330px] rounded-3xl bg-[#0b1c30] overflow-hidden shadow-lg flex items-center justify-center border border-[#0b1c30]">
           {cameraActive ? (
             <video ref={videoRef} muted playsInline className="absolute inset-0 w-full h-full object-cover" aria-label="Aperçu caméra du scanner" />
@@ -188,7 +188,7 @@ export const PartnerScannerScreen: React.FC<PartnerScannerScreenProps> = ({ onBa
         </div>
       </section>
 
-      <section className="px-4 pb-3 flex flex-col gap-2">
+      <section className="px-4 sm:px-6 lg:px-8 pb-3 flex flex-col gap-2">
         <div className="p-3 bg-white rounded-2xl border border-[#dce9ff] flex flex-col gap-2">
           <label htmlFor="manual-ticket-code" className="font-headline text-[12px] font-bold text-[#0b1c30]">Saisie manuelle du code billet</label>
           <div className="flex gap-2">

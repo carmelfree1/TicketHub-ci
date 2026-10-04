@@ -1,6 +1,6 @@
 import React from 'react';
 import { AppScreen, UserRole } from '@/types';
-import { ASSETS } from '@/features/catalog/data/mockData';
+import { ASSETS } from '@/lib/assets';
 
 interface HeaderProps {
   currentScreen: AppScreen;
@@ -65,8 +65,8 @@ export const Header: React.FC<HeaderProps> = ({
   const title = getScreenTitle();
 
   return (
-    <header className="fixed top-0 w-full z-40 bg-[#f8f9ff]/90 backdrop-blur-xl border-b border-[#e2bfb0]/30 shadow-[0_1px_8px_rgba(11,28,48,0.04)]">
-      <div className="max-w-md mx-auto h-16 px-4 flex items-center justify-between gap-2">
+    <header className="fixed top-0 inset-x-0 z-40 bg-[#f8f9ff]/90 backdrop-blur-xl border-b border-[#e2bfb0]/30 shadow-[0_1px_8px_rgba(11,28,48,0.04)]">
+      <div className="mx-auto h-16 w-full max-w-[1440px] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3">
         {/* Left Side: Back button or Logo + Title */}
         <div className="flex items-center gap-2 min-w-0">
           {isSubScreen ? (
@@ -82,7 +82,7 @@ export const Header: React.FC<HeaderProps> = ({
           {userRole === 'traveler' ? (
             <div
               onClick={() => onNavigate('explorer')}
-              className="flex items-center gap-2 cursor-pointer select-none"
+              className="flex items-center gap-2 cursor-pointer select-none min-w-0"
             >
               <img
                 src={ASSETS.logo}
@@ -113,7 +113,7 @@ export const Header: React.FC<HeaderProps> = ({
             /* Partner Mode Header */
             <div
               onClick={() => onNavigate('partner-dashboard')}
-              className="flex items-center gap-2 cursor-pointer select-none"
+              className="flex items-center gap-2 cursor-pointer select-none min-w-0"
             >
               <img
                 src={ASSETS.partnerLogo}
@@ -140,7 +140,7 @@ export const Header: React.FC<HeaderProps> = ({
         {/* Right Side: Location or Mode Switcher & Profile Avatar */}
         <div className="flex items-center gap-2 flex-shrink-0">
           {userRole === 'traveler' && currentScreen === 'explorer' && (
-            <div className="h-8 px-2.5 rounded-full bg-[#eff4ff] flex items-center gap-1.5 border border-[#dce9ff] text-[12px] font-semibold text-[#0b1c30] shadow-xs">
+            <div className="hidden sm:flex h-8 px-2.5 rounded-full bg-[#eff4ff] items-center gap-1.5 border border-[#dce9ff] text-[12px] font-semibold text-[#0b1c30] shadow-xs">
               <span className="w-2 h-2 rounded-full bg-[#216b43] animate-pulse"></span>
               <span>Abidjan 🇨🇮</span>
             </div>
